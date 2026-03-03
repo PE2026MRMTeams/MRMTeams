@@ -1,3 +1,51 @@
+# MRMTeams
+
+## Team
+- **Team Name:** MRM-DevTeam
+- **Members:**
+    - Razvan-Alexandru Anghel - Group Communications (GitHub: [razvananghel83](https://github.com/razvananghel83))
+    - Mihai-Sebastian Telu - Document Management (GitHub: [T-ms-code](https://github.com/T-ms-code))
+    - Mihai Sima - Enrollment & Access Control (GitHub: [LetMeCode01](https://github.com/LetMeCode01)) 
+
+## Project Description
+
+Lightweight Teams is a SaaS platform aimed at facilitating team collaboration through structured group communication and document management.  
+Our goal is to provide an intuitive, fast, and reliable system that avoids common networking issues and simplifies file handling.  
+
+The application focuses on backend APIs to manage messages, documents, and user roles efficiently, ensuring that all interactions are consistent and secure.  
+It is designed as a RESTful service with no frontend required, allowing easy integration with clients or other services.
+
+### Key Features
+- **Group Communications**
+  - Public-first messaging for groups
+  - Message truncation with "Show More"  
+  - Structural Constraints 
+- **Document Management System**
+  - Hierarchical folder structure for documents
+  - Versioning and integrity checks
+  - Naming Conventions 
+- **Enrollment & Access Control**
+  - Role-based access control
+  - Manage who can create/join groups
+  - Admin controls for member management and content moderation in groups 
+
+### Technical Stack
+- **Backend:** Spring Boot (Java 21)
+- **Database:** MongoDB
+- **API:** RESTful
+- **Testing:** JUnit, Mockito, Cucumber
+- **Monitoring:** Prometheus, Grafana
+- **Deployment:** Docker
+
+## Contributing
+
+All team members follow trunk-based development:
+1. Create feature branch from `main`
+2. Make changes and commit with clear messages
+3. Create PR and request review
+4. Address feedback
+5. Merge after approval
+
 # Prerequisites
 
 For using Github Codespaces, no prerequisites are mandatory.
