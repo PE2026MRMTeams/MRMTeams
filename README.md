@@ -1,3 +1,44 @@
+## Project idea
+
+This project aims to be a lightweight Microsoft Teams. Our goal is to avoid networking issues, files not found errors and have a more intuitive and faster application.
+
+## Planned Features & Project Roadmap
+
+We have categorised the initial feature set into three core modules. These focus on structured collaboration, robust file management, and role-based access.
+
+---
+
+### 1. Group Communications
+Optimised for transparent, community-driven dialogue.
+
+* **Public-First Messaging:** System architecture is optimized for group-wide transparency; private 1-on-1 messaging is currently excluded by design.
+* **Smart Truncation:** Long messages are automatically collapsed with a **"Show More/View Full"** toggle.
+* **Administrative Suite:** Higher-privileged users (Admins) have the authority to:
+    * Manage student enrollment within groups/classes.
+    * Moderate content (delete messages).
+    * Initialise and define new discussion topics.
+* **Structural Constraints:** To ensure active engagement, groups must meet a minimum member threshold to remain active.
+* *Note: Messaging is text-based; file sharing is handled via the Document Management module.*
+
+### 2. Document Management System
+A structured environment for organising and tracking project assets.
+
+* **Hierarchical Organisation:** Support for nested folders to categorise documents efficiently.
+* **Version Control:** Native file versioning is supported to track changes over time and prevent data loss.
+* **Integrity Validation:** Automated checks ensure target directories exist before any file upload operations are executed.
+* **Naming Conventions:**
+    * **Mandatory Identity:** Files and folders cannot be created without a name.
+    * **Flexibility:** There are no character-type restrictions, only a maximum size constraint for names.
+
+### 3. Enrollment & Access Control
+Granular permission handling to manage user flow.
+
+* **Role-Based Access Control (RBAC):** System-wide roles determine user capabilities, specifically identifying who is authorised to **Create** classes versus who is authorised to **Join** them.
+
+---
+
+1) 
+
 # Prerequisites
 
 For using Github Codespaces, no prerequisites are mandatory.
