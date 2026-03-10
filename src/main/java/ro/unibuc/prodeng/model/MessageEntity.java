@@ -5,15 +5,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
 
-@Document(collection = "folders") public record FolderEntity(
+
+@Document(collection = "messages")
+public record MessageEntity(
     @Id String id,
-    String name,
-    String teamId,
-    String parentFolderId,
-    String createdBy,
-    
+    String content,
+    String teamId,       
+    String sentBy,       
     @CreatedDate 
-    Instant createdAt,
-    @CreatedDate 
-    Instant modifiedAt 
+    Instant sentAt
 ) {}

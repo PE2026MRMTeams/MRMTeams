@@ -4,16 +4,15 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.Instant;
+import java.util.List;
 
-@Document(collection = "folders") public record FolderEntity(
+@Document(collection = "teams")
+public record TeamEntity(
     @Id String id,
     String name,
-    String teamId,
-    String parentFolderId,
-    String createdBy,
-    
-    @CreatedDate 
-    Instant createdAt,
+    String description,
+    String createdBy, // userId
+    List<String> members, // list[userId]
     @CreatedDate 
     Instant modifiedAt 
 ) {}
