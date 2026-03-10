@@ -37,8 +37,8 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
         userRepository.deleteAll();
     }
 
-    private void createUser(String name, String email) throws Exception {
-        CreateUserRequest request = new CreateUserRequest(name, email);
+    private void createUser(String name, String email, String password, String role) throws Exception {
+        CreateUserRequest request = new CreateUserRequest(name, email, password, role);
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -65,7 +65,7 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testCreateAndGetTodo_validTodoCreation_retrievesTodoSuccessfully() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
         String todoId = createTodo("Buy milk", "alice@example.com");
 
         // Act & Assert
@@ -80,8 +80,8 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testGetTodosByUser_multipleUsersWithDifferentTodos_filtersCorrectly() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
-        createUser("Bob", "bob@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
+        createUser("Bob", "bob@example.com", "password2", "admin");
         createTodo("Buy milk", "alice@example.com");
         createTodo("Walk the dog", "alice@example.com");
         createTodo("Clean house", "bob@example.com");
@@ -99,7 +99,7 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testSetDone_toggleDoneStatus_updatesStatusCorrectly() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
         String todoId = createTodo("Buy milk", "alice@example.com");
 
         // Act & Assert
@@ -119,8 +119,8 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testAssign_reassignToDifferentUser_updateAssigneeSuccessfully() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
-        createUser("Bob", "bob@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
+        createUser("Bob", "bob@example.com", "password2", "admin");
         String todoId = createTodo("Buy milk", "alice@example.com");
 
         // Act & Assert
@@ -135,7 +135,7 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testEditDescription_validNewDescription_updatesDescriptionSuccessfully() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
         String todoId = createTodo("Buy milk", "alice@example.com");
 
         // Act & Assert
@@ -149,7 +149,7 @@ class TodoControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void testDeleteTodo_existingTodo_deletesSuccessfully() throws Exception {
         // Arrange
-        createUser("Alice", "alice@example.com");
+        createUser("Alice", "alice@example.com", "password", "admin");
         String todoId = createTodo("Buy milk", "alice@example.com");
 
         // Act & Assert

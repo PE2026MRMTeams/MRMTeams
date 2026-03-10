@@ -33,7 +33,7 @@ public class ProdEngApplication {
 	@PostConstruct
 	public void runAfterObjectCreated() {
 		if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
-			CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me");
+			CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me", "password", "user");
 			userService.createUser(userRequest);
 			todoService.createTodo(new CreateTodoRequest("Take the ring to Mordor", "frodo@theshire.me"));
 		}

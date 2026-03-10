@@ -44,7 +44,7 @@ class UserControllerTest {
     
     private UserResponse testUser1 = new UserResponse("1", "John Doe", "john@example.com");
     private UserResponse testUser2 = new UserResponse("2", "Jane Smith", "jane@example.com");
-    private CreateUserRequest createUserRequest = new CreateUserRequest("John Doe", "john@example.com");
+    private CreateUserRequest createUserRequest = new CreateUserRequest("John Doe", "john@example.com", "password", "user");
     private ChangeNameRequest changeNameRequest = new ChangeNameRequest("John Updated");
     
     @BeforeEach

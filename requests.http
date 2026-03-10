@@ -19,7 +19,9 @@ Content-Type: application/json
 
 {
     "name": "Jean Valjean",
-    "email": "prisoner24601@france.fr"
+    "email": "prisoner24601@france.fr",
+    "password": "password",
+    "role": "user"
 }
 
 ### Get user by ID (uses ID from createUser response)
