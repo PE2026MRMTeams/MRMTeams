@@ -1,21 +1,20 @@
 package ro.unibuc.prodeng.service;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
-
-import jakarta.servlet.http.HttpServletRequest;
 import ro.unibuc.prodeng.response.FolderResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.FolderEntity;
+import ro.unibuc.prodeng.model.TeamEntity;
+import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.FolderRepository;
+import ro.unibuc.prodeng.repository.TeamRepository;
 
 
 @Service
@@ -23,29 +22,31 @@ public class FolderService {
      @Autowired
     private FolderRepository folderRepository;
 
-    // @Autowired
-    // private TeamRepository teamRepository;---to do
+    @Autowired
+    private TeamRepository teamRepository;
 
     @Autowired
-    private HttpServletRequest request; 
-    private final String SECRET = "cheia-lui-mihaita-de-la-332";
+    private AuthContextService authContextService;
 
     public List<FolderResponse> getAllFolders(String teamId) throws EntityNotFoundException {
-        String currentUserEmail = getEmailFromToken();
-        
-        // //Check there is the team -- to do
-        // TeamEntity team = teamRepository.findById(teamId)
-        //         .orElseThrow(() -> new EntityNotFoundException("Team doesn't exist"));
+        String requiredTeamId = Objects.requireNonNull(teamId, "Team id is required");
 
-        // //Check if user is member
-        // boolean isMember = team.getMembers().contains(currentUserEmail);
-        
-        // if (!isMember) {
-        //     throw new AccessDeniedException("You aren't a member of the team");
-        // }
+        // Enrollment&access: RBAC -> Resolve current caller through the shared auth context before membership checks.
+        UserEntity currentUser = authContextService.getCurrentUserFromToken();
 
+        // Enrollment&access: RBAC -> Load the team to validate enrollment membership before exposing folder data.
+        TeamEntity team = teamRepository.findById(requiredTeamId)
+            .orElseThrow(() -> new EntityNotFoundException("Team with id: " + requiredTeamId));
 
-        return folderRepository.findByTeamId(teamId).stream()
+        // Enrollment&access: RBAC -> Grant access only for admin users or users enrolled in the requested team.
+        boolean isAdmin = currentUser.role() != null && "admin".equalsIgnoreCase(currentUser.role());
+        boolean isTeamOwner = team.createdBy() != null && team.createdBy().equals(currentUser.id());
+        boolean isMember = team.members() != null && team.members().contains(currentUser.id());
+        if (!isAdmin && !isTeamOwner && !isMember) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this team's folders");
+        }
+
+        return folderRepository.findByTeamId(requiredTeamId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -59,22 +60,4 @@ public class FolderService {
         );
     }
 
-    private String getEmailFromToken() {
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token doesn't exist");
-        }
-
-        try {
-            String token = authHeader.substring(7);
-            
-            Algorithm algorithm = Algorithm.HMAC256(SECRET);
-            DecodedJWT jwt = JWT.require(algorithm).build().verify(token);
-            
-            return jwt.getSubject();
-        } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalide or expired token!");
-        }
-    }
 }
