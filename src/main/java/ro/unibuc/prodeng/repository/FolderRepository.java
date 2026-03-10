@@ -13,5 +13,5 @@ import ro.unibuc.prodeng.model.FolderEntity;
 @Repository
 public interface FolderRepository extends MongoRepository<FolderEntity, String> {
 
-    Optional<FolderEntity> findByName(String name);
+    Optional<FolderEntity> findByTeamId(String id);
 }
