@@ -19,7 +19,9 @@ Content-Type: application/json
 
 {
     "name": "Jean Valjean",
-    "email": "prisoner24601@france.fr"
+    "email": "prisoner24601@france.fr",
+    "password": "password",
+    "role": "user"
 }
 
 ### Get user by ID (uses ID from createUser response)
@@ -98,3 +100,15 @@ DELETE http://localhost:8080/api/todos/{{createTodo.response.body.id}}
 
 ### Delete user
 DELETE http://localhost:8080/api/users/{{createUser.response.body.id}}
+
+
+
+### Login for Telu Mihai (Token)
+# @name loginMihai
+POST http://localhost:8080/api/users/login
+Content-Type: application/json
+
+{
+    "email": "mihait@gmail.com",
+    "password": "password"
+}

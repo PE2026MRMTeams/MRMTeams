@@ -13,7 +13,11 @@ import ro.unibuc.prodeng.service.UserService;
 
 import jakarta.annotation.PostConstruct;
 
-@SpringBootApplication
+
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
+//No forms, respect my logic
+@SpringBootApplication(exclude = { SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class })
 @EnableMongoRepositories
 public class ProdEngApplication {
 
@@ -33,9 +37,14 @@ public class ProdEngApplication {
 	@PostConstruct
 	public void runAfterObjectCreated() {
 		if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
-			CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me");
+			CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me", "password", "user");
 			userService.createUser(userRequest);
 			todoService.createTodo(new CreateTodoRequest("Take the ring to Mordor", "frodo@theshire.me"));
+		}
+		if (userRepository.findByEmail("mihait@gmail.com").isEmpty()) {
+			CreateUserRequest userRequest = new CreateUserRequest("Telu Mihai", "mihait@gmail.com", "password", "admin");
+			userService.createUser(userRequest);
+			todoService.createTodo(new CreateTodoRequest("Primul user al teams-ului", "mihait@gmail.com"));
 		}
 	}
 }

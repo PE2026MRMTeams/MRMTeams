@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import ro.unibuc.prodeng.request.ChangeNameRequest;
 import ro.unibuc.prodeng.request.CreateUserRequest;
+import ro.unibuc.prodeng.request.LoginRequest;
+import ro.unibuc.prodeng.response.TokenResponse;
 import ro.unibuc.prodeng.response.UserResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.service.UserService;
@@ -66,5 +68,12 @@ public class UserController {
             throws EntityNotFoundException {
         UserResponse user = userService.getUserByEmail(email);
         return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        String token = userService.login(request);
+        
+        return ResponseEntity.ok(new TokenResponse(token));
     }
 }

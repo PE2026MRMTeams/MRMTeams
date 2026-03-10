@@ -57,8 +57,8 @@ public class TodoSteps {
     }
 
     @Given("a user named {word} with email {word}")
-    public void createUser(String name, String email) throws Exception {
-        CreateUserRequest request = new CreateUserRequest(name, email);
+    public void createUser(String name, String email, String password, String role) throws Exception {
+        CreateUserRequest request = new CreateUserRequest(name, email,password, role);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<CreateUserRequest> entity = new HttpEntity<>(request, headers);
