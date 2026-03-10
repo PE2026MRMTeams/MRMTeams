@@ -37,6 +37,8 @@ dependencies {
 	implementation 'commons-io:commons-io:2.18.0'
 	implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
 
+ 	implementation 'com.auth0:java-jwt:4.4.0'//for token
+
 	runtimeOnly 'com.h2database:h2'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
