@@ -17,7 +17,7 @@ public class FolderController {
     @Autowired
     private FolderService folderService;
 
-    @GetMapping("/{teamId}")
+    @GetMapping
     public ResponseEntity<List<FolderResponse>> getAllFolders(@PathVariable String teamId) throws EntityNotFoundException {
         List<FolderResponse> folders = folderService.getAllFolders(teamId);
         return ResponseEntity.ok(folders);
