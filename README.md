@@ -37,6 +37,51 @@ It is designed as a RESTful service with no frontend required, allowing easy int
 - **Monitoring:** Prometheus, Grafana
 - **Deployment:** Docker
 
+### Database Schema
+
+[![MRMTeams database schema](./documentation/db-schema.png)](https://dbdiagram.io/d/MRMTeams-69b92ef078c6c4bc7a0226be)
+
+- View the interactive diagram on dbdiagram.io: https://dbdiagram.io/d/MRMTeams-69b92ef078c6c4bc7a0226be
+
+### REST API endpoints
+
+#### Users
+
+| Endpoint | Method | Purpose |
+| :--- | :---: | :--- |
+| `/api/users` | GET | List all users |
+| `/api/users/{id}` | GET | Get one user by ID |
+| `/api/users` | POST | Create a new user |
+| `/api/users/{id}` | PUT | Update a user's name |
+| `/api/users/{id}/name` | PATCH | Partially update a user's name |
+| `/api/users/{id}` | DELETE | Delete a user |
+| `/api/users/by-email?email={email}` | GET | Get one user by email |
+| `/api/users/login` | POST | Authenticate a user and return a token |
+
+#### Teams
+
+| Endpoint | Method | Purpose |
+| :--- | :---: | :--- |
+| `/api/teams` | POST | Create a new team |
+| `/api/teams/{teamId}/members` | POST | Add a member to a team |
+| `/api/teams/{teamId}` | GET | Get one team by ID |
+| `/api/teams` | GET | List teams visible to the current user |
+| `/api/teams/{teamId}/join-requests` | POST | Submit a join request for a team |
+| `/api/teams/{teamId}/join-requests` | GET | List pending join requests for a team |
+| `/api/teams/{teamId}/join-requests/{userId}/approve` | POST | Approve a user's join request |
+| `/api/teams/{teamId}/members/{userId}` | DELETE | Remove a member from a team |
+| `/api/teams/{teamId}/join-requests/{userId}` | DELETE | Reject a user's join request |
+| `/api/teams/{teamId}/messages` | POST | Create a new message in a team (body: CreateMessageRequest) |
+| `/api/teams/{teamId}/messages` | GET | List messages for a team |
+| `/api/teams/{teamId}/messages/{messageId}` | DELETE | Delete a message (admin only) |
+
+#### Folders
+
+| Endpoint | Method | Purpose |
+| :--- | :---: | :--- |
+| `/api/folders/{teamId}` | GET | List all folders for a team |
+
+
 ## Contributing
 
 All team members follow trunk-based development:
