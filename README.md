@@ -60,19 +60,25 @@ It is designed as a RESTful service with no frontend required, allowing easy int
 
 #### Teams
 
+| Endpoint | Method | Purpose                                |
+| :--- | :---: |:---------------------------------------|
+| `/api/teams` | POST | Create a new team                      |
+| `/api/teams/{teamId}/members` | POST | Add a member to a team                 |
+| `/api/teams/{teamId}` | GET | Get one team by ID                     |
+| `/api/teams` | GET | List teams visible to the current user |
+| `/api/teams/{teamId}/join-requests` | POST | Submit a join request for a team       |
+| `/api/teams/{teamId}/join-requests` | GET | List pending join requests for a team  |
+| `/api/teams/{teamId}/join-requests/{userId}/approve` | POST | Approve a user's join request          |
+| `/api/teams/{teamId}/members/{userId}` | DELETE | Remove a member from a team            |
+| `/api/teams/{teamId}/join-requests/{userId}` | DELETE | Reject a user's join request           |
+
+#### Messages
+
 | Endpoint | Method | Purpose |
 | :--- | :---: | :--- |
-| `/api/teams` | POST | Create a new team |
-| `/api/teams/{teamId}/members` | POST | Add a member to a team |
-| `/api/teams/{teamId}` | GET | Get one team by ID |
-| `/api/teams` | GET | List teams visible to the current user |
-| `/api/teams/{teamId}/join-requests` | POST | Submit a join request for a team |
-| `/api/teams/{teamId}/join-requests` | GET | List pending join requests for a team |
-| `/api/teams/{teamId}/join-requests/{userId}/approve` | POST | Approve a user's join request |
-| `/api/teams/{teamId}/members/{userId}` | DELETE | Remove a member from a team |
-| `/api/teams/{teamId}/join-requests/{userId}` | DELETE | Reject a user's join request |
-| `/api/teams/{teamId}/messages` | POST | Create a new message in a team (body: CreateMessageRequest) |
-| `/api/teams/{teamId}/messages` | GET | List messages for a team |
+| `/api/teams/{teamId}/messages` | POST | Create a new message in a team |
+| `/api/teams/{teamId}/messages?cursor={messageId_or_iso_timestamp}&limit={1..100}` | GET | List team messages with cursor-based pagination; each item may return truncated `content` with `isTruncated=true` |
+| `/api/teams/{teamId}/messages/{messageId}` | GET | Get the full, un-truncated message by ID |
 | `/api/teams/{teamId}/messages/{messageId}` | DELETE | Delete a message (admin only) |
 
 #### Folders

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -29,23 +30,31 @@ public class MessageController {
     public ResponseEntity<MessageResponse> createMessage(
             @PathVariable String teamId,
             @Valid @RequestBody CreateMessageRequest request) {
-        //Enrollment&access: admin controls members/content -> Allow authorized users to publish content in team channels.
         MessageResponse createdMessage = messageService.createMessage(teamId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdMessage);
     }
 
     @GetMapping
-    public ResponseEntity<List<MessageResponse>> getMessagesByTeam(@PathVariable String teamId) {
-        //Enrollment&access: admin controls members/content -> Return team content only when caller has access to the group.
-        List<MessageResponse> messages = messageService.getMessagesByTeam(teamId);
+    public ResponseEntity<List<MessageResponse>> getMessagesByTeam(
+            @PathVariable String teamId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        List<MessageResponse> messages = messageService.getMessagesByTeam(teamId, cursor, limit);
         return ResponseEntity.ok(messages);
+    }
+
+    @GetMapping("/{messageId}")
+    public ResponseEntity<MessageResponse> getMessageById(
+            @PathVariable String teamId,
+            @PathVariable String messageId) {
+        MessageResponse message = messageService.getMessageById(teamId, messageId);
+        return ResponseEntity.ok(message);
     }
 
     @DeleteMapping("/{messageId}")
     public ResponseEntity<Void> deleteMessage(
             @PathVariable String teamId,
             @PathVariable String messageId) {
-        //Enrollment&access: admin controls members/content -> Enforce admin-only moderation for message deletion.
         messageService.deleteMessage(teamId, messageId);
         return ResponseEntity.noContent().build();
     }

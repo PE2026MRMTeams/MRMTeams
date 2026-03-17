@@ -6,6 +6,5 @@ import org.springframework.stereotype.Repository;
 import ro.unibuc.prodeng.model.TeamEntity;
 
 @Repository
-// Enrollment&access: RBAC -> Repository boundary for team enrollment persistence.
 public interface TeamRepository extends MongoRepository<TeamEntity, String> {
 }
