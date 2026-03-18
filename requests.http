@@ -112,3 +112,108 @@ Content-Type: application/json
     "email": "mihait@gmail.com",
     "password": "password"
 }
+
+# ==========================================
+# FLOW COMPLET: Echipe, Membri și Foldere
+# ==========================================
+
+### 1. Creare User ADMIN
+# @name createAdmin
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+    "name": "Sefu la Echipa",
+    "email": "admin.echipa@prodeng.ro",
+    "password": "password",
+    "role": "admin"
+}
+
+### 2. Login ADMIN (pentru a obține Token-ul)
+# @name loginAdmin
+POST http://localhost:8080/api/users/login
+Content-Type: application/json
+
+{
+    "email": "admin.echipa@prodeng.ro",
+    "password": "password"
+}
+
+### 3. Adminul creează o Echipă
+# @name createTeam
+POST http://localhost:8080/api/teams
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Echipa Backend",
+    "description": "Responsabili cu Spring Boot si MongoDB"
+}
+
+### 4. Creare User SIMPLU (viitor membru)
+# @name createMember
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+    "name": "Dev Junior",
+    "email": "junior@prodeng.ro",
+    "password": "password",
+    "role": "user"
+}
+
+### 5. Login User SIMPLU
+# @name loginMember
+POST http://localhost:8080/api/users/login
+Content-Type: application/json
+
+{
+    "email": "junior@prodeng.ro",
+    "password": "password"
+}
+
+### 6. Userul Simplu cere să intre în Echipă
+# @name joinRequest
+POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests
+Authorization: Bearer {{loginMember.response.body.token}}
+
+### 7. Adminul vede cererile în așteptare
+GET http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 8. Adminul Aprobă cererea userului
+POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests/{{createMember.response.body.id}}/approve
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 9. Adminul creează un FOLDER PRINCIPAL (Root Folder) în echipă
+# @name createRootFolder
+POST http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Documentație Proiect",
+    "parentFolderId": null
+}
+
+### 10. Adminul creează un SUBFOLDER în folderul principal
+# @name createSubFolder
+POST http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Schițe și Diagrame",
+    "parentFolderId": "{{createRootFolder.response.body.id}}"
+}
+
+### 11. Userul simplu (acum membru) vede toate folderele echipei
+GET http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+Authorization: Bearer {{loginMember.response.body.token}}
+
+### 12. Modificarea numelui unui folder (PATCH)
+PATCH http://localhost:8080/api/folders/{{createTeam.response.body.id}}/{{createRootFolder.response.body.id}}/name
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: text/plain
+
+Documentatie Actualizata 2026
