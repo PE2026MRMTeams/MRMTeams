@@ -27,6 +27,7 @@ public class AuthContextService {
 
     // Enrollment&access: RBAC -> Resolve the authenticated user email from the Bearer token.
     public String getEmailFromToken() {
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
