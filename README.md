@@ -134,7 +134,7 @@ Follow the [./PREREQUISITES.md](./PREREQUISITES.md) instructions to configure a 
 NOTE: for a live demo, please check out [this youtube video](https://youtu.be/-9ePlxz03kg)
 
 # Run/debug code in IntelliJ
-* Build the code
+* Build the code*
     * IntelliJ will build it automatically
     * If you want to build it from command line and also run unit tests, run: ```./gradlew build```
 * Create an IntelliJ run configuration for a Jar application
@@ -144,6 +144,11 @@ NOTE: for a live demo, please check out [this youtube video](https://youtu.be/-9
 * Run/debug your IntelliJ run configuration
 * Open in your browser:
     * http://localhost:8080/api/users
+* If you open a Dev Container to run the application instead of using the local Docker and JDK from WSL, you need to modify 
+docker-compose.yml and .devcontainer/devcontainer.json according to the instructions provided in docker-compose.yml under mongo-admin-ui
+  ( line 40 ). The devcontainer.json file should be modified at line 36 to add the port 8090. 
+From this "forwardPorts": [8080] to this "forwardPorts": [8080, 8090]. This will allow you to view the Mongo Admin UI inside your 
+Windows browser.
 
 # Deploy and run the code locally as Docker instance
 

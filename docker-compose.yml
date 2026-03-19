@@ -41,7 +41,14 @@ services:
     image: mongo-express
     restart: always
     ports:
+      # For using GitHub Codespaces this set-up is fine
+      # If you use a local Linux/WSL set-up, I think this is alright as well, but I haven't tested
+      # However, if you use WSL with a Dev Container, you must modify the ports to look like this:
+      # - "0.0.0.0:8090:8081"
+      # That is because, a second forwarding is needed to pass the information to the Windows host
       - 8090:8081
+      # You also have to modify the line 36 in .devcontainer/devcontainer.json to add the port 8090
+      # From this: "forwardPorts": [8080] to this "forwardPorts": [8080, 8090]
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: example
