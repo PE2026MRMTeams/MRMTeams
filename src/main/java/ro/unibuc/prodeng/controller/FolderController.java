@@ -14,19 +14,19 @@ import ro.unibuc.prodeng.request.CreateFolderRequest;
 import ro.unibuc.prodeng.service.FolderService;
 
 @RestController
-@RequestMapping("/api/folders/{teamId}")
+@RequestMapping("/api/folders")
 public class FolderController {
 
     @Autowired
     private FolderService folderService;
 
-    @GetMapping
+    @GetMapping("/{teamId}")
     public ResponseEntity<List<FolderResponse>> getAllFolders(@PathVariable String teamId) throws EntityNotFoundException {
         List<FolderResponse> folders = folderService.getAllFolders(teamId);
         return ResponseEntity.ok(folders);
     }
 
-    @GetMapping("/{folderId}")
+    @GetMapping("/subfolders/{folderId}")
     public ResponseEntity<List<FolderResponse>> getSubFolders(@PathVariable String folderId) throws EntityNotFoundException {
         List<FolderResponse> folders = folderService.getSubFolders( folderId);
         return ResponseEntity.ok(folders);

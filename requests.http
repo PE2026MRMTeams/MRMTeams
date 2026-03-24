@@ -47,63 +47,65 @@ Content-Type: application/json
 }
 
 
-# ==========================================
-# Todo Controller Endpoints
-# ==========================================
+# # ==========================================
+# # Todo Controller Endpoints
+# # ==========================================
 
-### Create a new todo (run this after createUser to populate variables)
-# @name createTodo
-POST http://localhost:8080/api/todos
-Content-Type: application/json
+# ### Create a new todo (run this after createUser to populate variables)
+# # @name createTodo
+# POST http://localhost:8080/api/todos
+# Content-Type: application/json
 
-{
-    "description": "Rescue Cosette from the Thénardiers",
-    "assigneeEmail": "{{createUser.response.body.email}}"
-}
+# {
+#     "description": "Rescue Cosette from the Thénardiers",
+#     "assigneeEmail": "{{createUser.response.body.email}}"
+# }
 
-### Get todos by assignee email
-GET http://localhost:8080/api/todos?assigneeEmail={{createUser.response.body.email}}
+# ### Get todos by assignee email
+# GET http://localhost:8080/api/todos?assigneeEmail={{createUser.response.body.email}}
 
-### Get todo by ID (uses ID from createTodo response)
-GET http://localhost:8080/api/todos/{{createTodo.response.body.id}}
+# ### Get todo by ID (uses ID from createTodo response)
+# GET http://localhost:8080/api/todos/{{createTodo.response.body.id}}
 
-### Mark todo as done
-PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/done
-Content-Type: application/json
+# ### Mark todo as done
+# PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/done
+# Content-Type: application/json
 
-true
+# true
 
-### Assign todo to another user
-# Note: You'll need another user to exist for this to work
-PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/assignee
-Content-Type: application/json
+# ### Assign todo to another user
+# # Note: You'll need another user to exist for this to work
+# PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/assignee
+# Content-Type: application/json
 
-{
-    "newAssigneeEmail": "frodo@theshire.me"
-}
+# {
+#     "newAssigneeEmail": "frodo@theshire.me"
+# }
 
-### Edit todo description
-PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/description
-Content-Type: application/json
+# ### Edit todo description
+# PATCH http://localhost:8080/api/todos/{{createTodo.response.body.id}}/description
+# Content-Type: application/json
 
-{
-    "description": "Escape from Inspector Javert"
-}
-
-
-# ==========================================
-# Cleanup (run these last)
-# ==========================================
-
-### Delete todo
-DELETE http://localhost:8080/api/todos/{{createTodo.response.body.id}}
-
-### Delete user
-DELETE http://localhost:8080/api/users/{{createUser.response.body.id}}
+# {
+#     "description": "Escape from Inspector Javert"
+# }
 
 
+# # ==========================================
+# # Cleanup (run these last)
+# # ==========================================
 
-### Login for Telu Mihai (Token)
+# ### Delete todo
+# DELETE http://localhost:8080/api/todos/{{createTodo.response.body.id}}
+
+# ### Delete user
+# DELETE http://localhost:8080/api/users/{{createUser.response.body.id}}
+
+
+
+
+
+### 0. Login for Telu Mihai (Sistem Admin)
 # @name loginMihai
 POST http://localhost:8080/api/users/login
 Content-Type: application/json
@@ -114,106 +116,167 @@ Content-Type: application/json
 }
 
 # ==========================================
-# FLOW COMPLET: Echipe, Membri și Foldere
+# FLOW COMPLET: Teams, Members, Folders
 # ==========================================
 
-### 1. Creare User ADMIN
+### 1. Create User ADMIN
 # @name createAdmin
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-    "name": "Sefu la Echipa",
-    "email": "admin.echipa@prodeng.ro",
+    "name": "AdminName1",
+    "email": "admin1.echipa@prodeng.ro",
     "password": "password",
     "role": "admin"
 }
 
-### 2. Login ADMIN (pentru a obține Token-ul)
+### 2. Login ADMIN
 # @name loginAdmin
 POST http://localhost:8080/api/users/login
 Content-Type: application/json
 
 {
-    "email": "admin.echipa@prodeng.ro",
+    "email": "admin1.echipa@prodeng.ro",
     "password": "password"
 }
 
-### 3. Adminul creează o Echipă
+### 3.1. The admin creates a team
 # @name createTeam
 POST http://localhost:8080/api/teams
 Authorization: Bearer {{loginAdmin.response.body.token}}
 Content-Type: application/json
 
 {
-    "name": "Echipa Backend",
-    "description": "Responsabili cu Spring Boot si MongoDB"
+    "name": "Backend Team",
+    "description": "Responsible with Spring Boot and MongoDB"
 }
 
-### 4. Creare User SIMPLU (viitor membru)
+### 3.2. The admin creates another team
+# @name createTeam2
+POST http://localhost:8080/api/teams
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Frontend Team",
+    "description": "Responsible with HTML, CSS, React and Angular"
+}
+
+### 4. Create average User (future member)
 # @name createMember
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-    "name": "Dev Junior",
-    "email": "junior@prodeng.ro",
+    "name": "JuniorName1",
+    "email": "junior1@prodeng.ro",
     "password": "password",
     "role": "user"
 }
 
-### 5. Login User SIMPLU
+### 5. Login average User
 # @name loginMember
 POST http://localhost:8080/api/users/login
 Content-Type: application/json
 
 {
-    "email": "junior@prodeng.ro",
+    "email": "junior1@prodeng.ro",
     "password": "password"
 }
 
-### 6. Userul Simplu cere să intre în Echipă
+### 6. Request to join team
 # @name joinRequest
 POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests
 Authorization: Bearer {{loginMember.response.body.token}}
 
-### 7. Adminul vede cererile în așteptare
+### 7. The admin sees all join requests for the team
 GET http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests
 Authorization: Bearer {{loginAdmin.response.body.token}}
 
-### 8. Adminul Aprobă cererea userului
+### 8. The admin approves the join request
 POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests/{{createMember.response.body.id}}/approve
 Authorization: Bearer {{loginAdmin.response.body.token}}
 
-### 9. Adminul creează un FOLDER PRINCIPAL (Root Folder) în echipă
+### 9.1. The admin creates a ROOT FOLDER in the team
 # @name createRootFolder
-POST http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+POST http://localhost:8080/api/folders
 Authorization: Bearer {{loginAdmin.response.body.token}}
 Content-Type: application/json
 
 {
-    "name": "Documentație Proiect",
+    "name": "Project1",
+    "teamId": "{{createTeam.response.body.id}}",
     "parentFolderId": null
 }
 
-### 10. Adminul creează un SUBFOLDER în folderul principal
-# @name createSubFolder
-POST http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+### 9.2. The admin creates another ROOT FOLDER in the team, with the same name - should fail
+# @name createRootFolder2
+POST http://localhost:8080/api/folders
 Authorization: Bearer {{loginAdmin.response.body.token}}
 Content-Type: application/json
 
 {
-    "name": "Schițe și Diagrame",
+    "name": "Project1",
+    "teamId": "{{createTeam.response.body.id}}",
+    "parentFolderId": null
+}
+
+### 9.3. The admin creates another ROOT FOLDER with a nonvalid team ID - should fail
+# @name createRootFolder3
+POST http://localhost:8080/api/folders
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Project1",
+    "teamId": "333333333",
+    "parentFolderId": null
+}
+
+### 9.4. Another admin not member tries to create a root folder in the team - should fail
+# @name createRootFolder4
+POST http://localhost:8080/api/folders
+Authorization: Bearer {{loginMihai.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Project3",
+    "teamId": "{{createTeam.response.body.id}}",
+    "parentFolderId": null
+}
+
+### 10. The admin creates a SUBFOLDER inside the ROOT FOLDER
+# @name createSubFolder
+POST http://localhost:8080/api/folders
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "name": "Diagrams1",
+    "teamId": "{{createTeam.response.body.id}}",
     "parentFolderId": "{{createRootFolder.response.body.id}}"
 }
 
-### 11. Userul simplu (acum membru) vede toate folderele echipei
+### 11. The member (not admin) gets all folders in the team
 GET http://localhost:8080/api/folders/{{createTeam.response.body.id}}
 Authorization: Bearer {{loginMember.response.body.token}}
 
-### 12. Modificarea numelui unui folder (PATCH)
-PATCH http://localhost:8080/api/folders/{{createTeam.response.body.id}}/{{createRootFolder.response.body.id}}/name
+### 12. Update folder name 
+PATCH http://localhost:8080/api/folders/{{createRootFolder.response.body.id}}/name
 Authorization: Bearer {{loginAdmin.response.body.token}}
 Content-Type: text/plain
 
-Documentatie Actualizata 2026
+Proiect_Actualizat
+
+### 13. An admin sees all folders in the team after the update 
+GET http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+Authorization: Bearer {{loginMihai.response.body.token}}
+
+### 14. An admin member deletes a subfolder
+DELETE http://localhost:8080/api/folders/{{createSubFolder.response.body.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 15. An admin sees all folders in the team after the delete
+GET http://localhost:8080/api/folders/{{createTeam.response.body.id}}
+Authorization: Bearer {{loginMihai.response.body.token}}

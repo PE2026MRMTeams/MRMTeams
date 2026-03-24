@@ -75,7 +75,30 @@ public class FolderService {
         
         TeamEntity team = teamRepository.findById(teamId)
             .orElseThrow(() -> new EntityNotFoundException("Team with id: " + teamId));
-            
+
+        if (request.parentFolderId() != null) {
+            FolderEntity parentFolder = folderRepository.findById(request.parentFolderId())
+                .orElseThrow(() -> new EntityNotFoundException("Parent folder not found: " + request.parentFolderId())); 
+
+            //Unique Name validation for subfolders
+            boolean nameExists = folderRepository.findByParentFolderId(request.parentFolderId()).stream()
+                .anyMatch(folder -> folder.name().equalsIgnoreCase(request.name()));
+            if (nameExists) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A subfolder with the same name already exists in the parent folder");
+            }
+        }
+        //Unique Name validation for root folders
+        if (request.parentFolderId() == null) {
+            boolean nameExists = folderRepository.findByTeamId(teamId).stream()
+                .filter(folder -> folder.parentFolderId() == null)
+                .anyMatch(folder -> folder.name().equalsIgnoreCase(request.name()));
+            if (nameExists) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A root folder with the same name already exists in the team");
+            }
+        }
+
+
+
         boolean isAdmin = currentUser.role() != null && "admin".equalsIgnoreCase(currentUser.role());
         boolean isTeamMember = team.members() != null && team.members().contains(currentUser.id());
         
@@ -83,33 +106,21 @@ public class FolderService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to create folders in this team");
         }
         
+        Instant now = Instant.now();
+
         FolderEntity folder = new FolderEntity(
                 null, 
                 request.name(),
                 request.teamId(),
                 request.parentFolderId(),
                 currentUser.id(),
-                Instant.now(),
-                Instant.now()
+                now,
+                now
         );
         
         FolderEntity saved = folderRepository.save(folder);
         
-        if (request.parentFolderId() != null) {
-            folderRepository.findById(request.parentFolderId())
-                .ifPresent(parent -> {
-                    FolderEntity updatedParent = new FolderEntity(
-                            parent.id(),
-                            parent.name(),
-                            parent.teamId(),
-                            parent.parentFolderId(),
-                            parent.createdBy(),
-                            parent.createdAt(),
-                            Instant.now() 
-                    );
-                    folderRepository.save(updatedParent);
-                });
-        }
+        updateParentFolderModifiedAtRecursively(request.parentFolderId(), now);
         
         return toResponse(saved);
     }
@@ -126,10 +137,22 @@ public class FolderService {
         boolean isAdmin = currentUser.role() != null && "admin".equalsIgnoreCase(currentUser.role());
         boolean isTeamMember = team.members() != null && team.members().contains(currentUser.id());
         
+
+        //Check for unique name among siblings
+        List<FolderEntity> siblingFolders = existing.parentFolderId() == null
+            ? folderRepository.findByTeamId(existing.teamId()).stream().filter(folder -> folder.parentFolderId() == null).toList()
+            : folderRepository.findByParentFolderId(existing.parentFolderId());
+        boolean nameExists = siblingFolders.stream().filter(folder -> !folder.id().equals(folderId)) 
+            .anyMatch(folder -> folder.name().equalsIgnoreCase(name));
+        if (nameExists) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A folder with the same name already exists in the same location");
+        }
+
         if (!isAdmin || !isTeamMember) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to update folders in this team");
         }
         
+        Instant now = Instant.now();
         FolderEntity updated = new FolderEntity(
                 existing.id(), 
                 name, 
@@ -137,11 +160,13 @@ public class FolderService {
                 existing.parentFolderId(), 
                 existing.createdBy(), 
                 existing.createdAt(), 
-                Instant.now()
+                now
         );
         
         FolderEntity saved = folderRepository.save(updated);
         
+        updateParentFolderModifiedAtRecursively(existing.parentFolderId(), now);
+
         return toResponse(saved);
     }
 
@@ -150,10 +175,10 @@ public class FolderService {
         
         FolderEntity existing = folderRepository.findById(folderId)
                 .orElseThrow(() -> new EntityNotFoundException(folderId));
-                
+
         TeamEntity team = teamRepository.findById(existing.teamId())
             .orElseThrow(() -> new EntityNotFoundException("Team with id: " + existing.teamId()));
-            
+
         boolean isAdmin = currentUser.role() != null && "admin".equalsIgnoreCase(currentUser.role());
         boolean isTeamMember = team.members() != null && team.members().contains(currentUser.id());
         
@@ -161,14 +186,41 @@ public class FolderService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to delete folders in this team");
         }
         
-        
+        Instant now = Instant.now();
+        updateParentFolderModifiedAtRecursively(existing.parentFolderId(), now);
         deleteFolderRecursively(folderId);
+    }
+
+    private void updateParentFolderModifiedAtRecursively(String parentFolderId, Instant modifiedAt) {
+         while (parentFolderId != null) {
+        FolderEntity parent = folderRepository.findById(parentFolderId)
+            .orElse(null);
+
+        if (parent == null) break;
+
+        FolderEntity updatedParent = new FolderEntity(
+                parent.id(),
+                parent.name(),
+                parent.teamId(),
+                parent.parentFolderId(),
+                parent.createdBy(),
+                parent.createdAt(),
+                modifiedAt
+        );
+
+        folderRepository.save(updatedParent);
+
+        parentFolderId = parent.parentFolderId();
+    }
     }
 
     private void deleteFolderRecursively(String currentFolderId) {
         
         // TODO: delete files in folder
-        
+        if(currentFolderId == null) {
+            return;
+        }
+
         List<FolderEntity> subfolders = folderRepository.findByParentFolderId(currentFolderId);
         
         
@@ -184,6 +236,8 @@ public class FolderService {
         return new FolderResponse(
                 folder.id(),
                 folder.name(),
+                teamRepository.findById(folder.teamId()).map(TeamEntity::name).orElse("Unknown Team"),
+                folder.parentFolderId() != null ? folderRepository.findById(folder.parentFolderId()).map(FolderEntity::name).orElse("Unknown Folder") : null,
                 folder.createdAt(),
                 folder.modifiedAt()
         );

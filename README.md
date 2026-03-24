@@ -86,7 +86,10 @@ It is designed as a RESTful service with no frontend required, allowing easy int
 | Endpoint | Method | Purpose |
 | :--- | :---: | :--- |
 | `/api/folders/{teamId}` | GET | List all folders for a team |
-
+| `/api/folders/subfolders/{folderId}` | GET | List all subfolders for a folder |
+| `/api/folders` | POST | Create a new folder for a team in a old folder or as a root folder (body: CreateFolderRequest) |
+| `/api/folders/{folderId}/name` | PATCH | Update a folder's name (body: new name) |
+| `/api/folders/{folderId}` | DELETE | Delete a folder |
 
 ## Contributing
 

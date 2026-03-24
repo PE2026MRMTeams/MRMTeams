@@ -75,6 +75,11 @@ public class UserService {
             throw new EntityNotFoundException(id);
         }
         userRepository.deleteById(id);
+        //Can't actually delete the user because of the implications. Instead, we will just change the name to [DELETED].
+        // UserEntity existing = userRepository.findById(id)
+        //         .orElseThrow(() -> new EntityNotFoundException(id));
+        // UserEntity deleted = new UserEntity(existing.id(), "[DELETED]", existing.email(), existing.password(), existing.role(), existing.createdAt());
+        // userRepository.save(deleted);
     }
 
     public UserResponse getUserByEmail(String email) throws EntityNotFoundException {
