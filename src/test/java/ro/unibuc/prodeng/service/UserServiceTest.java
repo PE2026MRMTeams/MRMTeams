@@ -11,8 +11,12 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateUserRequest;
+import ro.unibuc.prodeng.request.LoginRequest;
 import ro.unibuc.prodeng.response.UserResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
+import com.auth0.jwt.JWT;
+import org.mockito.ArgumentCaptor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -99,6 +103,43 @@ class UserServiceTest {
     }
 
     @Test
+    void testCreateUser_duplicateEmail_throwsIllegalArgumentException() {
+        // Arrange
+        CreateUserRequest request = new CreateUserRequest("Alice", "alice@example.com", "password", "admin");
+        UserEntity existing = new UserEntity("1", "Existing", "alice@example.com", "pass", "user", Instant.now());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(existing));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.createUser(request));
+
+        assertTrue(exception.getMessage().contains("Email already exists"));
+        verify(userRepository, never()).save(any(UserEntity.class));
+    }
+
+    @Test
+    void testCreateUser_nullRole_defaultsToUserAndEncryptsPassword() {
+        // Arrange
+        CreateUserRequest request = new CreateUserRequest("Alice", "alice@example.com", "password123", null);
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        UserResponse result = userService.createUser(request);
+
+        // Assert
+        assertNotNull(result);
+        ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
+        verify(userRepository).save(captor.capture());
+        UserEntity saved = captor.getValue();
+
+        assertEquals("user", saved.role());
+        assertNotEquals("password123", saved.password());
+        assertTrue(new BCryptPasswordEncoder().matches("password123", saved.password()));
+    }
+
+    @Test
     void testChangeName_existingUserRequested_changesNameSuccessfully() throws EntityNotFoundException {
         // Arrange
         UserEntity existing = new UserEntity("1", "Alice", "alice@example.com", "password", "admin",Instant.now());
@@ -148,5 +189,122 @@ class UserServiceTest {
 
         // Act & Assert
         assertThrows(EntityNotFoundException.class, () -> userService.deleteUser("999"));
+    }
+
+    @Test
+    void testGetUserEntityById_existingUserRequested_returnsEntity() {
+        // Arrange
+        UserEntity user = new UserEntity("1", "Alice", "alice@example.com", "password", "admin", Instant.now());
+        when(userRepository.findById("1")).thenReturn(Optional.of(user));
+
+        // Act
+        UserEntity result = userService.getUserEntityById("1");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("1", result.id());
+        assertEquals("Alice", result.name());
+    }
+
+    @Test
+    void testGetUserEntityById_nonExistingUserRequested_throwsEntityNotFoundException() {
+        // Arrange
+        when(userRepository.findById("404")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> userService.getUserEntityById("404"));
+    }
+
+    @Test
+    void testGetUserByEmail_existingEmail_returnsUserResponse() {
+        // Arrange
+        UserEntity user = new UserEntity("1", "Alice", "alice@example.com", "password", "admin", Instant.now());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+        // Act
+        UserResponse result = userService.getUserByEmail("alice@example.com");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("1", result.id());
+        assertEquals("alice@example.com", result.email());
+    }
+
+    @Test
+    void testGetUserByEmail_nonExistingEmail_throwsEntityNotFoundException() {
+        // Arrange
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> userService.getUserByEmail("missing@example.com"));
+    }
+
+    @Test
+    void testGetUserEntityByEmail_existingEmail_returnsEntity() {
+        // Arrange
+        UserEntity user = new UserEntity("1", "Alice", "alice@example.com", "password", "admin", Instant.now());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+        // Act
+        UserEntity result = userService.getUserEntityByEmail("alice@example.com");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("1", result.id());
+        assertEquals("alice@example.com", result.email());
+    }
+
+    @Test
+    void testGetUserEntityByEmail_nonExistingEmail_throwsEntityNotFoundException() {
+        // Arrange
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> userService.getUserEntityByEmail("missing@example.com"));
+    }
+
+    @Test
+    void testLogin_validCredentials_returnsTokenWithSubjectEmail() {
+        // Arrange
+        String rawPassword = "password123";
+        String encodedPassword = new BCryptPasswordEncoder().encode(rawPassword);
+        UserEntity user = new UserEntity("1", "Alice", "alice@example.com", encodedPassword, "user", Instant.now());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+        // Act
+        String token = userService.login(new LoginRequest("alice@example.com", rawPassword));
+
+        // Assert
+        assertNotNull(token);
+        assertFalse(token.isBlank());
+        assertEquals("alice@example.com", JWT.decode(token).getSubject());
+    }
+
+    @Test
+    void testLogin_invalidEmail_throwsIllegalArgumentException() {
+        // Arrange
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.login(new LoginRequest("missing@example.com", "password123")));
+
+        assertEquals("Invalid email", exception.getMessage());
+    }
+
+    @Test
+    void testLogin_invalidPassword_throwsIllegalArgumentException() {
+        // Arrange
+        String encodedPassword = new BCryptPasswordEncoder().encode("correct-password");
+        UserEntity user = new UserEntity("1", "Alice", "alice@example.com", encodedPassword, "user", Instant.now());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.login(new LoginRequest("alice@example.com", "wrong-password")));
+
+        assertEquals("Invalid password", exception.getMessage());
     }
 }

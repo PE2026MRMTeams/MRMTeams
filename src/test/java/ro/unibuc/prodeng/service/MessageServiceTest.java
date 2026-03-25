@@ -470,6 +470,90 @@ public class MessageServiceTest {
         verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
     }
 
+    @Test
+    void testGetMessagesByTeam_blankCursor_usesDefaultPaginationBranch() {
+
+        // Arrange
+        MessageEntity message = createTestMessage("m-blank", "Blank cursor path", teamId, userId, now);
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+                .thenReturn(List.of(message));
+
+        // Act
+        List<MessageResponse> result = messageService.getMessagesByTeam(teamId, "   ", 4);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("m-blank", result.get(0).id());
+        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
+                eq(teamId),
+                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 4));
+        verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
+        verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
+    }
+
+    @Test
+    void testGetMessagesByTeam_withNullContent_mapsToEmptyPreview() {
+
+        // Arrange
+        MessageEntity nullContentMessage = createTestMessage("m-null", null, teamId, userId, now);
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+                .thenReturn(List.of(nullContentMessage));
+
+        // Act
+        List<MessageResponse> result = messageService.getMessagesByTeam(teamId, null, 5);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("", result.get(0).content());
+        assertFalse(result.get(0).isTruncated());
+    }
+
+    @Test
+    void testGetMessagesByTeam_withLongContent_returnsTruncatedPreview() {
+
+        // Arrange
+        String longContent = "x".repeat(600);
+        MessageEntity longMessage = createTestMessage("m-long", longContent, teamId, userId, now);
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+                .thenReturn(List.of(longMessage));
+
+        // Act
+        List<MessageResponse> result = messageService.getMessagesByTeam(teamId, null, 6);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals(500, result.get(0).content().length());
+        assertTrue(result.get(0).isTruncated());
+    }
+
+    @Test
+    void testGetMessageById_withNullRoleAndNullTeamMetadata_throwsForbiddenException() {
+
+        // Arrange
+        UserEntity noRoleUser = createTestUser("user-no-role", "NoRole", "nrole@test.com", null, now);
+        TeamEntity teamWithNulls = createTestTeam(teamId, "Team Nulls", null, null, now);
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(noRoleUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithNulls));
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> messageService.getMessageById(teamId, "msg-null-branches"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
+    }
+
     /// Tests for createMessage
 
     @Test
@@ -693,6 +777,23 @@ public class MessageServiceTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         assertTrue(exception.getReason().contains("Only admins can perform this operation"));
+        verifyNoInteractions(teamRepository);
+        verifyNoInteractions(messageRepository);
+    }
+
+    @Test
+    void testDeleteMessage_userWithNullRole_throwsForbiddenException() {
+
+        // Arrange
+        UserEntity nullRoleUser = createTestUser("u-null", "Null Role", "nullrole@test.com", null, now);
+        when(authContextService.getCurrentUserFromToken()).thenReturn(nullRoleUser);
+
+        // Act & Assert
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> messageService.deleteMessage(teamId, "msg-delete"));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         verifyNoInteractions(teamRepository);
         verifyNoInteractions(messageRepository);
     }
