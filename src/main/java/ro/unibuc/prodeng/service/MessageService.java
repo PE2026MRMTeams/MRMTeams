@@ -8,17 +8,18 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
+import ro.unibuc.prodeng.exception.ForbiddenAccessException;
+import ro.unibuc.prodeng.exception.InvalidLimitException;
 import ro.unibuc.prodeng.model.MessageEntity;
 import ro.unibuc.prodeng.model.TeamEntity;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.MessageRepository;
 import ro.unibuc.prodeng.repository.TeamRepository;
 import ro.unibuc.prodeng.request.CreateMessageRequest;
+import ro.unibuc.prodeng.request.EditMessageRequest;
 import ro.unibuc.prodeng.response.MessageResponse;
 
 @Service
@@ -48,14 +49,14 @@ public class MessageService {
         boolean isMember = team.members() != null && team.members().contains(user.id());
 
         if (!isAdmin && !isOwner && !isMember) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to access this team's messages!");
+            throw new ForbiddenAccessException("You are not allowed to access this team's messages!");
         }
     }
 
     // RBAC: admin controls members/content -> Shared guard for admin-only moderation actions
     private void isAdmin(UserEntity user) {
         if (user.role() == null || !user.role().equalsIgnoreCase("admin")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can perform this operation");
+            throw new ForbiddenAccessException("Only admins can perform this operation");
         }
     }
 
@@ -102,8 +103,7 @@ public class MessageService {
             return DEFAULT_PAGE_LIMIT;
         }
         if (requestedLimit < 1 || requestedLimit > MAX_PAGE_LIMIT) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Limit must be between 1 and " + MAX_PAGE_LIMIT);
+            throw new InvalidLimitException("Limit must be between 1 and " + MAX_PAGE_LIMIT);
         }
         return requestedLimit;
     }
@@ -128,8 +128,7 @@ public class MessageService {
                         Instant cursorSentAt = Instant.parse(cursor);
                         return messageRepository.findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(teamId, cursorSentAt, pageable);
                     } catch (DateTimeParseException ex) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                "Cursor must be a valid message id for this team or a timestamp");
+                        throw new InvalidLimitException("Cursor must be a valid message id for this team or a timestamp");
                     }
                 });
     }
@@ -179,6 +178,33 @@ public class MessageService {
                 .orElseThrow(() -> new EntityNotFoundException("Message with id: " + messageId + " and team: " + team.id()));
 
         return toResponse(message);
+    }
+
+    public MessageResponse editMessage(String teamId, String messageId, EditMessageRequest requestBody) {
+
+        // RBAC: Only the user who created the message can edit it
+        UserEntity currentUser = authContextService.getCurrentUserFromToken();
+        TeamEntity team = getTeamOrThrow(teamId);
+        isEnrolledOrAdmin(team, currentUser);
+
+        MessageEntity message = messageRepository.findByIdAndTeamId(messageId, team.id())
+                .orElseThrow(() -> new EntityNotFoundException("Message with id: " + messageId + " and team: " + team.id()));
+
+        // Check if the current user is the owner of the message
+        if (!message.sentBy().equals(currentUser.id())) {
+            throw new ForbiddenAccessException("You can only edit messages you created");
+        }
+
+        // Create a new MessageEntity with updated content but keep original metadata
+        MessageEntity updatedMessage = messageRepository.save(new MessageEntity(
+                message.id(),
+                requestBody.content(),
+                message.teamId(),
+                message.sentBy(),
+                message.sentAt()
+        ));
+
+        return toResponse(updatedMessage);
     }
 
     public void deleteMessage(String teamId, String messageId) {

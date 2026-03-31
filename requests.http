@@ -129,6 +129,48 @@ Authorization: Bearer {{loginAdmin.response.body.token}}
 POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/join-requests/{{createMember.response.body.id}}/approve
 Authorization: Bearer {{loginAdmin.response.body.token}}
 
+### 8.1. Member creates a message in the team
+# @name createMemberMessage
+POST http://localhost:8080/api/teams/{{createTeam.response.body.id}}/messages
+Authorization: Bearer {{loginMember.response.body.token}}
+Content-Type: application/json
+
+{
+    "content": "Hello team, this is my first message"
+}
+
+### 8.2. Member edits their own message (should succeed)
+# @name editOwnMessage
+PUT http://localhost:8080/api/teams/{{createTeam.response.body.id}}/messages/{{createMemberMessage.response.body.id}}
+Authorization: Bearer {{loginMember.response.body.token}}
+Content-Type: application/json
+
+{
+    "content": "Hello team, this is my edited message"
+}
+
+### 8.3. Admin tries to edit member's message (should fail with 403)
+PUT http://localhost:8080/api/teams/{{createTeam.response.body.id}}/messages/{{createMemberMessage.response.body.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+    "content": "Admin override attempt"
+}
+
+### 8.4. Member tries to edit a non-existent message (should fail with 404)
+PUT http://localhost:8080/api/teams/{{createTeam.response.body.id}}/messages/does-not-exist
+Authorization: Bearer {{loginMember.response.body.token}}
+Content-Type: application/json
+
+{
+    "content": "This should fail"
+}
+
+### 8.5. Get edited message by id
+GET http://localhost:8080/api/teams/{{createTeam.response.body.id}}/messages/{{createMemberMessage.response.body.id}}
+Authorization: Bearer {{loginMember.response.body.token}}
+
 ### 9.1. The admin creates a ROOT FOLDER in the team
 # @name createRootFolder
 POST http://localhost:8080/api/folders

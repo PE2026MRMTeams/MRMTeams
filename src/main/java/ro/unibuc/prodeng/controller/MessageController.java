@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import ro.unibuc.prodeng.request.CreateMessageRequest;
+import ro.unibuc.prodeng.request.EditMessageRequest;
 import ro.unibuc.prodeng.response.MessageResponse;
 import ro.unibuc.prodeng.service.MessageService;
 
@@ -49,6 +51,15 @@ public class MessageController {
             @PathVariable String messageId) {
         MessageResponse message = messageService.getMessageById(teamId, messageId);
         return ResponseEntity.ok(message);
+    }
+
+    @PutMapping("/{messageId}")
+    public ResponseEntity<MessageResponse> editMessage(
+            @PathVariable String teamId,
+            @PathVariable String messageId,
+            @Valid @RequestBody EditMessageRequest request) {
+        MessageResponse updatedMessage = messageService.editMessage(teamId, messageId, request);
+        return ResponseEntity.ok(updatedMessage);
     }
 
     @DeleteMapping("/{messageId}")

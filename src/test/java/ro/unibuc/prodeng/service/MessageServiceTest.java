@@ -6,10 +6,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.web.server.ResponseStatusException;
 
+import ro.unibuc.prodeng.exception.ForbiddenAccessException;
+import ro.unibuc.prodeng.exception.InvalidLimitException;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.model.MessageEntity;
 import ro.unibuc.prodeng.model.TeamEntity;
@@ -18,6 +18,7 @@ import ro.unibuc.prodeng.repository.TeamRepository;
 import ro.unibuc.prodeng.response.MessageResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.request.CreateMessageRequest;
+import ro.unibuc.prodeng.request.EditMessageRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -175,7 +176,7 @@ public class MessageServiceTest {
     }
     
     @Test
-    void testGetMessageById_userNotEnrolledAndNotAdmin_throwsForbiddenException() {
+    void testGetMessageById_userNotEnrolledAndNotAdmin_throwsForbiddenAccessException() {
 
         // Arrange
         String messageId = "msg1";
@@ -184,7 +185,7 @@ public class MessageServiceTest {
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
         
         // Act & Assert
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, 
+        ForbiddenAccessException exception = assertThrows(ForbiddenAccessException.class,
             () -> messageService.getMessageById(teamId, messageId));
         
         assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
@@ -333,19 +334,18 @@ public class MessageServiceTest {
     }
 
     @Test
-    void testGetMessagesByTeam_userNotEnrolledAndNotAdmin_throwsForbiddenException() {
+    void testGetMessagesByTeam_userNotEnrolledAndNotAdmin_throwsForbiddenAccessException() {
 
         // Arrange
         when(authContextService.getCurrentUserFromToken()).thenReturn(nonEnrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
                 () -> messageService.getMessagesByTeam(teamId, null, null));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("not allowed to access this team's messages"));
+        assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
         verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
         verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
@@ -353,43 +353,41 @@ public class MessageServiceTest {
     }
 
     @Test
-    void testGetMessagesByTeam_limitBelowMinimum_throwsBadRequest() {
+    void testGetMessagesByTeam_limitBelowMinimum_throwsInvalidLimitException() {
 
         // Arrange
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        InvalidLimitException exception = assertThrows(
+                InvalidLimitException.class,
                 () -> messageService.getMessagesByTeam(teamId, null, 0));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Limit must be between 1 and 100"));
+        assertTrue(exception.getMessage().contains("Limit must be between 1 and 100"));
         verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
     @Test
-    void testGetMessagesByTeam_limitAboveMaximum_throwsBadRequest() {
+    void testGetMessagesByTeam_limitAboveMaximum_throwsInvalidLimitException() {
 
         // Arrange
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        InvalidLimitException exception = assertThrows(
+                InvalidLimitException.class,
                 () -> messageService.getMessagesByTeam(teamId, null, 101));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Limit must be between 1 and 100"));
+        assertTrue(exception.getMessage().contains("Limit must be between 1 and 100"));
         verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
     @Test
-    void testGetMessagesByTeam_invalidCursor_throwsBadRequest() {
+    void testGetMessagesByTeam_invalidCursor_throwsInvalidLimitException() {
 
         // Arrange
         String invalidCursor = "invalid-cursor";
@@ -399,12 +397,11 @@ public class MessageServiceTest {
         when(messageRepository.findByIdAndTeamId(invalidCursor, teamId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        InvalidLimitException exception = assertThrows(
+                InvalidLimitException.class,
                 () -> messageService.getMessagesByTeam(teamId, invalidCursor, 10));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Cursor must be a valid message id for this team or a timestamp"));
+        assertTrue(exception.getMessage().contains("Cursor must be a valid message id for this team or a timestamp"));
         verify(messageRepository).findByIdAndTeamId(invalidCursor, teamId);
         verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
         verify(messageRepository, never()).findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), any(Pageable.class));
@@ -536,7 +533,7 @@ public class MessageServiceTest {
     }
 
     @Test
-    void testGetMessageById_withNullRoleAndNullTeamMetadata_throwsForbiddenException() {
+    void testGetMessageById_withNullRoleAndNullTeamMetadata_throwsForbiddenAccessException() {
 
         // Arrange
         UserEntity noRoleUser = createTestUser("user-no-role", "NoRole", "nrole@test.com", null, now);
@@ -546,11 +543,11 @@ public class MessageServiceTest {
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithNulls));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
                 () -> messageService.getMessageById(teamId, "msg-null-branches"));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
@@ -621,7 +618,7 @@ public class MessageServiceTest {
     }
 
     @Test
-    void testCreateMessage_userNotEnrolledAndNotAdmin_throwsForbiddenException() {
+    void testCreateMessage_userNotEnrolledAndNotAdmin_throwsForbiddenAccessException() {
         // Arrange
         CreateMessageRequest request = new CreateMessageRequest("Unauthorized message");
 
@@ -629,12 +626,11 @@ public class MessageServiceTest {
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
                 () -> messageService.createMessage(teamId, request));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("not allowed to access this team's messages"));
+        assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
         verify(messageRepository, never()).save(any(MessageEntity.class));
     }
 
@@ -740,6 +736,117 @@ public class MessageServiceTest {
         verify(messageRepository).save(argThat(msg -> msg.sentBy().equals(user2Id)));
     }
 
+    /// Tests for editMessage
+
+    @Test
+    void testEditMessage_messageOwner_updatesContentAndPreservesMetadata() {
+
+        // Arrange
+        String messageId = "msg-edit";
+        Instant sentAt = now.minusSeconds(30);
+        MessageEntity existingMessage = createTestMessage(messageId, "Old content", teamId, userId, sentAt);
+        EditMessageRequest request = new EditMessageRequest("Updated content");
+        MessageEntity updatedMessage = createTestMessage(messageId, "Updated content", teamId, userId, sentAt);
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByIdAndTeamId(messageId, teamId)).thenReturn(Optional.of(existingMessage));
+        when(messageRepository.save(any(MessageEntity.class))).thenReturn(updatedMessage);
+
+        // Act
+        MessageResponse response = messageService.editMessage(teamId, messageId, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(messageId, response.id());
+        assertEquals("Updated content", response.content());
+        assertEquals(teamId, response.teamId());
+        assertEquals(userId, response.sentBy());
+        assertEquals(sentAt, response.sentAt());
+        assertFalse(response.isTruncated());
+
+        verify(messageRepository).save(argThat(msg ->
+                msg.id().equals(messageId) &&
+                msg.content().equals("Updated content") &&
+                msg.teamId().equals(teamId) &&
+                msg.sentBy().equals(userId) &&
+                msg.sentAt().equals(sentAt)
+        ));
+    }
+
+    @Test
+    void testEditMessage_nonOwner_throwsForbiddenAccessException() {
+
+        // Arrange
+        String messageId = "msg-edit";
+        MessageEntity existingMessage = createTestMessage(messageId, "Old content", teamId, ownerId, now);
+        EditMessageRequest request = new EditMessageRequest("Updated content");
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByIdAndTeamId(messageId, teamId)).thenReturn(Optional.of(existingMessage));
+
+        // Act & Assert
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
+                () -> messageService.editMessage(teamId, messageId, request));
+
+        assertTrue(exception.getMessage().contains("You can only edit messages you created"));
+        verify(messageRepository, never()).save(any(MessageEntity.class));
+    }
+
+    @Test
+    void testEditMessage_messageNotFound_throwsEntityNotFoundException() {
+
+        // Arrange
+        String messageId = "missing-message";
+        EditMessageRequest request = new EditMessageRequest("Updated content");
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+        when(messageRepository.findByIdAndTeamId(messageId, teamId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> messageService.editMessage(teamId, messageId, request));
+        verify(messageRepository, never()).save(any(MessageEntity.class));
+    }
+
+    @Test
+    void testEditMessage_userNotEnrolled_throwsForbiddenAccessException() {
+
+        // Arrange
+        String messageId = "msg-edit";
+        EditMessageRequest request = new EditMessageRequest("Updated content");
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(nonEnrolledUser);
+        when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
+
+        // Act & Assert
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
+                () -> messageService.editMessage(teamId, messageId, request));
+
+        assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
+        verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
+        verify(messageRepository, never()).save(any(MessageEntity.class));
+    }
+
+    @Test
+    void testEditMessage_teamDoesNotExist_throwsEntityNotFoundException() {
+
+        // Arrange
+        String missingTeamId = "missing-team";
+        EditMessageRequest request = new EditMessageRequest("Updated content");
+
+        when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
+        when(teamRepository.findById(missingTeamId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> messageService.editMessage(missingTeamId, "msg-edit", request));
+        verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
+        verify(messageRepository, never()).save(any(MessageEntity.class));
+    }
+
     /// Tests for deleteMessage
 
     @Test
@@ -763,7 +870,7 @@ public class MessageServiceTest {
     }
 
     @Test
-    void testDeleteMessage_nonAdmin_throwsForbiddenException() {
+    void testDeleteMessage_nonAdmin_throwsForbiddenAccessException() {
 
         // Arrange
         String messageId = "msg-delete";
@@ -771,29 +878,28 @@ public class MessageServiceTest {
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
                 () -> messageService.deleteMessage(teamId, messageId));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        assertTrue(exception.getReason().contains("Only admins can perform this operation"));
+        assertTrue(exception.getMessage().contains("Only admins can perform this operation"));
         verifyNoInteractions(teamRepository);
         verifyNoInteractions(messageRepository);
     }
 
     @Test
-    void testDeleteMessage_userWithNullRole_throwsForbiddenException() {
+    void testDeleteMessage_userWithNullRole_throwsForbiddenAccessException() {
 
         // Arrange
         UserEntity nullRoleUser = createTestUser("u-null", "Null Role", "nullrole@test.com", null, now);
         when(authContextService.getCurrentUserFromToken()).thenReturn(nullRoleUser);
 
         // Act & Assert
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        ForbiddenAccessException exception = assertThrows(
+                ForbiddenAccessException.class,
                 () -> messageService.deleteMessage(teamId, "msg-delete"));
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("Only admins can perform this operation"));
         verifyNoInteractions(teamRepository);
         verifyNoInteractions(messageRepository);
     }
