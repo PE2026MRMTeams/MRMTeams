@@ -1,0 +1,10 @@
+2026/04/01 03:46:26 INFO  - jmeter.util.JMeterUtils: Setting Locale to en 
+2026/04/01 03:46:26 INFO  - jmeter.JMeter: Loading user properties from: /usr/share/jmeter/bin/user.properties 
+2026/04/01 03:46:26 INFO  - jmeter.JMeter: Loading system properties from: /usr/share/jmeter/bin/system.properties 
+2026/04/01 03:46:26 FATAL - jmeter.JMeter: An error occurred:  java.lang.IllegalArgumentException: Unknown arg: PeformanceTestFolder.jmx
+	at org.apache.jmeter.JMeter.initializeProperties(JMeter.java:608)
+	at org.apache.jmeter.JMeter.start(JMeter.java:298)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.apache.jmeter.NewDriver.main(NewDriver.java:264)
+
