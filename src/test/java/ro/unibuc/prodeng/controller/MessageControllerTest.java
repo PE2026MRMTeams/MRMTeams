@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import ro.unibuc.prodeng.request.CreateMessageRequest;
+import ro.unibuc.prodeng.request.EditMessageRequest;
 import ro.unibuc.prodeng.response.MessageResponse;
 import ro.unibuc.prodeng.service.MessageService;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -32,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.*;
 
@@ -286,5 +288,103 @@ public class MessageControllerTest {
                 .andExpect(status().isForbidden());
 
         verify(messageService, times(1)).deleteMessage("team-1", "msg-1");
+    }
+
+    @Test
+    void testEditMessage_withValidRequest_returnsUpdatedMessage() throws Exception {
+
+        // Arrange
+        MessageResponse updatedResponse = new MessageResponse(
+                "msg-1",
+                "Updated message content",
+                "team-1",
+                "user-1",
+                Instant.parse("2023-01-01T10:00:00Z"),
+                false
+        );
+        EditMessageRequest editRequest = new EditMessageRequest("Updated message content");
+        when(messageService.editMessage(eq("team-1"), eq("msg-1"), any(EditMessageRequest.class)))
+                .thenReturn(updatedResponse);
+
+        // Act & Assert
+        mockMvc.perform(put("/api/teams/{teamId}/messages/{messageId}", "team-1", "msg-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(editRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is("msg-1")))
+                .andExpect(jsonPath("$.content", is("Updated message content")))
+                .andExpect(jsonPath("$.teamId", is("team-1")))
+                .andExpect(jsonPath("$.sentBy", is("user-1")))
+                .andExpect(jsonPath("$.isTruncated", is(false)));
+
+        verify(messageService, times(1)).editMessage(eq("team-1"), eq("msg-1"), any(EditMessageRequest.class));
+    }
+
+    @Test
+    void testEditMessage_withBlankContent_returnsBadRequest() throws Exception {
+
+        // Arrange
+        EditMessageRequest invalidRequest = new EditMessageRequest("   ");
+
+        // Act & Assert
+        mockMvc.perform(put("/api/teams/{teamId}/messages/{messageId}", "team-1", "msg-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+
+        // Verify that the service is never called if validation fails
+        verify(messageService, never()).editMessage(anyString(), anyString(), any(EditMessageRequest.class));
+    }
+
+    @Test
+    void testEditMessage_whenMessageNotFound_returnsNotFound() throws Exception {
+
+        // Arrange
+        EditMessageRequest editRequest = new EditMessageRequest("Updated content");
+        when(messageService.editMessage("team-1", "missing-msg", editRequest))
+                .thenThrow(new EntityNotFoundException("Message with id: missing-msg and team: team-1"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/teams/{teamId}/messages/{messageId}", "team-1", "missing-msg")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(editRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error", containsString("missing-msg")));
+
+        verify(messageService, times(1)).editMessage("team-1", "missing-msg", editRequest);
+    }
+
+    @Test
+    void testEditMessage_whenUserIsNotMessageOwner_returnsForbidden() throws Exception {
+
+        // Arrange
+        EditMessageRequest editRequest = new EditMessageRequest("Updated content");
+        when(messageService.editMessage("team-1", "msg-1", editRequest))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only edit messages you created"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/teams/{teamId}/messages/{messageId}", "team-1", "msg-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(editRequest)))
+                .andExpect(status().isForbidden());
+
+        verify(messageService, times(1)).editMessage("team-1", "msg-1", editRequest);
+    }
+
+    @Test
+    void testEditMessage_whenForbidden_returnsForbidden() throws Exception {
+
+        // Arrange
+        EditMessageRequest editRequest = new EditMessageRequest("Updated content");
+        when(messageService.editMessage("team-1", "msg-1", editRequest))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied"));
+
+        // Act & Assert
+        mockMvc.perform(put("/api/teams/{teamId}/messages/{messageId}", "team-1", "msg-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(editRequest)))
+                .andExpect(status().isForbidden());
+
+        verify(messageService, times(1)).editMessage("team-1", "msg-1", editRequest);
     }
 }
