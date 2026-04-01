@@ -47,3 +47,6 @@ infrastructure/loki/durable/
 
 ### Claude Code ###
 .claude/
+
+# Remove jmeter.log
+/jmeter.log
