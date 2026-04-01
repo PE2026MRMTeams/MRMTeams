@@ -46,9 +46,22 @@ Content-Type: application/json
     "name": "Monsieur le Maire"
 }
 
+
+
 # ==========================================
 # FLOW COMPLET: Teams, Members, Folders
 # ==========================================
+
+###0. Login another admin user (Mihai) to test permissions
+# @name loginMihai
+POST http://localhost:8080/api/users/login
+Content-Type: application/json
+
+{
+    "email": "mihait@gmail.com",
+    "password": "password"
+}
+
 
 ### 1. Create User ADMIN
 # @name createAdmin
