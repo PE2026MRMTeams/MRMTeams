@@ -59,3 +59,5 @@ docker-compose --profile perf up -d --remove-orphans --scale wrk-injector-info-p
 ```
 ./stop.sh
 ```
+
+Test to see if automatic builds are working for CI 
