@@ -20,12 +20,11 @@ services:
     restart: on-failure
     volumes:
       - type: bind
+        # Uses .env value locally; defaults to /workspaces/ for GitHub Codespaces
         source: ${JENKINS_CONFIG_ROOT:-/workspaces/jenkins_config}
         target: /var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - /usr/bin/docker:/usr/bin/docker
-      - ./Dockerfile:/Dockerfile
-      - /usr/libexec/docker/cli-plugins/docker-compose:/usr/libexec/docker/cli-plugins/docker-compose
     profiles:
       - "prod-eng-service"
     user: 0:0
