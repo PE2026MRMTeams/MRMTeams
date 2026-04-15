@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -18,6 +16,7 @@ import ro.unibuc.prodeng.model.TeamEntity;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.MessageRepository;
 import ro.unibuc.prodeng.repository.TeamRepository;
+import ro.unibuc.prodeng.projection.MessagePreviewProjection;
 import ro.unibuc.prodeng.request.CreateMessageRequest;
 import ro.unibuc.prodeng.request.EditMessageRequest;
 import ro.unibuc.prodeng.response.MessageResponse;
@@ -68,7 +67,7 @@ public class MessageService {
                              .orElseThrow(() -> new EntityNotFoundException("Team with id: " + requiredTeamId));
     }
 
-    // Converts a MessageEntity to an API response
+    // Converts a full MessageEntity to an API response
     private MessageResponse toResponse(MessageEntity message) {
         return new MessageResponse(
                 message.id(),
@@ -80,20 +79,15 @@ public class MessageService {
         );
     }
 
-    // Returns a preview payload for list endpoints and marks when content is truncated.
-    private MessageResponse toListResponse(MessageEntity message) {
-
-        String content = message.content() == null ? "" : message.content();
-        boolean isTruncated = content.length() > MESSAGE_PREVIEW_LIMIT;
-        String previewContent = isTruncated ? content.substring(0, MESSAGE_PREVIEW_LIMIT) : content;
-
+    // Maps a preview projection produced by the repository into the API response.
+    private MessageResponse toListResponse(MessagePreviewProjection message) {
         return new MessageResponse(
                 message.id(),
-                previewContent,
+                message.content(),
                 message.teamId(),
                 message.sentBy(),
                 message.sentAt(),
-                isTruncated
+                message.truncated()
         );
     }
 
@@ -108,25 +102,23 @@ public class MessageService {
         return requestedLimit;
     }
 
-    private List<MessageEntity> fetchPageFromCursor(String teamId, String cursor, int limit) {
-
-        Pageable pageable = PageRequest.of(0, limit);
-
+    private List<MessagePreviewProjection> fetchPreviewPageFromCursor(String teamId, String cursor, int limit) {
         if (cursor == null || cursor.isBlank()) {
-            return messageRepository.findByTeamIdOrderBySentAtDescIdDesc(teamId, pageable);
+            return messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(teamId, limit, MESSAGE_PREVIEW_LIMIT);
         }
 
         return messageRepository.findByIdAndTeamId(cursor, teamId)
-                .map(cursorMessage -> messageRepository.findPageByTeamIdFromCursor(
+                .map(cursorMessage -> messageRepository.findPreviewPageByTeamIdFromCursor(
                         teamId,
                         cursorMessage.sentAt(),
                         cursorMessage.id(),
-                        pageable
+                        limit,
+                        MESSAGE_PREVIEW_LIMIT
                 ))
                 .orElseGet(() -> {
                     try {
                         Instant cursorSentAt = Instant.parse(cursor);
-                        return messageRepository.findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(teamId, cursorSentAt, pageable);
+                        return messageRepository.findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(teamId, cursorSentAt, limit, MESSAGE_PREVIEW_LIMIT);
                     } catch (DateTimeParseException ex) {
                         throw new InvalidLimitException("Cursor must be a valid message id for this team or a timestamp");
                     }
@@ -163,7 +155,7 @@ public class MessageService {
         isEnrolledOrAdmin(team, currentUser);
 
         int pageLimit = sanitizeLimit(limit);
-        return fetchPageFromCursor(team.id(), cursor, pageLimit).stream()
+        return fetchPreviewPageFromCursor(team.id(), cursor, pageLimit).stream()
                 .map(this::toListResponse)
                 .toList();
     }

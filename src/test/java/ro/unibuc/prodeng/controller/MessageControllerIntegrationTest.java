@@ -162,6 +162,23 @@ class MessageControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void testGetMessages_withLongMessage_returnsTruncatedPreview() throws Exception {
+        // Arrange
+        createUser("Alice", "alice@example.com", "password123", "admin");
+        String token = loginUser("alice@example.com", "password123");
+        String teamId = createTeam("Engineering Team", token);
+        String longContent = "x".repeat(600);
+        createMessage(teamId, longContent, token);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/teams/{teamId}/messages", teamId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].content").value(longContent.substring(0, 500)))
+                .andExpect(jsonPath("$[0].isTruncated").value(true));
+    }
+
+    @Test
     void testEditMessage_blankContent_returnsBadRequest() throws Exception {
         // Arrange
         createUser("Alice", "alice@example.com", "password123", "admin");
