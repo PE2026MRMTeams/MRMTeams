@@ -77,7 +77,7 @@ It is designed as a RESTful service with no frontend required, allowing easy int
 | Endpoint | Method | Purpose                                                                                                           |
 | :--- |:------:|:------------------------------------------------------------------------------------------------------------------|
 | `/api/teams/{teamId}/messages` |  POST  | Create a new message in a team                                                                                    |
-| `/api/teams/{teamId}/messages?cursor={messageId_or_iso_timestamp}&limit={1..100}` |  GET   | List team messages with cursor-based pagination; each item may return truncated `content` with `isTruncated=true` |
+| `/api/teams/{teamId}/messages?cursor={messageId_or_iso_timestamp}&limit={1..100}` |  GET   | List team messages with cursor-based pagination; each item returns only a 500-character preview in `content` with `isTruncated=true` when truncated |
 | `/api/teams/{teamId}/messages/{messageId}` |  GET   | Get the full, un-truncated message by ID                                                                          |
 | `/api/teams/{teamId}/messages/{messageId}` |  PUT   | Edit the message with the specified ID                                                                            |
 | `/api/teams/{teamId}/messages/{messageId}` | DELETE | Delete a message (admin only)                                                                                     |

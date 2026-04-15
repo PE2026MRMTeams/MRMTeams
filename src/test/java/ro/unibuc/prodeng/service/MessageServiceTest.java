@@ -5,7 +5,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import ro.unibuc.prodeng.exception.ForbiddenAccessException;
@@ -15,6 +14,7 @@ import ro.unibuc.prodeng.model.MessageEntity;
 import ro.unibuc.prodeng.model.TeamEntity;
 import ro.unibuc.prodeng.repository.MessageRepository;
 import ro.unibuc.prodeng.repository.TeamRepository;
+import ro.unibuc.prodeng.projection.MessagePreviewProjection;
 import ro.unibuc.prodeng.response.MessageResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.request.CreateMessageRequest;
@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -86,6 +87,10 @@ public class MessageServiceTest {
 
     private MessageEntity createTestMessage(String id, String content, String teamId, String sentBy, Instant sentAt) {
         return new MessageEntity(id, content, teamId, sentBy, sentAt);
+    }
+
+    private MessagePreviewProjection createTestPreview(String id, String content, String teamId, String sentBy, Instant sentAt, boolean truncated) {
+        return new MessagePreviewProjection(id, content, teamId, sentBy, sentAt, truncated);
     }
 
     /// Tests for getMessageById
@@ -198,12 +203,12 @@ public class MessageServiceTest {
     void testGetMessagesByTeam_enrolledUserNoLimit_returnsPreviewListWithDefaultLimit() {
 
         // Arrange
-        MessageEntity msg1 = createTestMessage("m1", "Hello", teamId, userId, now);
-        MessageEntity msg2 = createTestMessage("m2", "World", teamId, userId, now.minusSeconds(5));
+        MessagePreviewProjection msg1 = createTestPreview("m1", "Hello", teamId, userId, now, false);
+        MessagePreviewProjection msg2 = createTestPreview("m2", "World", teamId, userId, now.minusSeconds(5), false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500)))
                 .thenReturn(List.of(msg1, msg2));
 
         // Act
@@ -219,20 +224,18 @@ public class MessageServiceTest {
         assertFalse(result.get(0).isTruncated());
 
         verify(teamRepository).findById(teamId);
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 50));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500));
     }
 
     @Test
     void testGetMessagesByTeam_enrolledUserWithLimit_returnsPreviewListWithRequestedLimit() {
 
         // Arrange
-        MessageEntity msg1 = createTestMessage("m1", "Hello", teamId, userId, now);
+        MessagePreviewProjection msg1 = createTestPreview("m1", "Hello", teamId, userId, now, false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(10), eq(500)))
                 .thenReturn(List.of(msg1));
 
         // Act
@@ -244,20 +247,18 @@ public class MessageServiceTest {
         assertEquals("Hello", result.get(0).content());
         assertFalse(result.get(0).isTruncated());
 
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 10));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(10), eq(500));
     }
 
     @Test
     void testGetMessagesByTeam_adminUserNoLimit_canAccessTeamMessages() {
 
         // Arrange
-        MessageEntity message = createTestMessage("m1", "Admin can read", teamId, ownerId, now);
+        MessagePreviewProjection message = createTestPreview("m1", "Admin can read", teamId, ownerId, now, false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(adminUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithOwner));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500)))
                 .thenReturn(List.of(message));
 
         // Act
@@ -269,20 +270,18 @@ public class MessageServiceTest {
         assertEquals(teamId, result.get(0).teamId());
         assertEquals(ownerId, result.get(0).sentBy());
 
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 50));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500));
     }
 
     @Test
     void testGetMessagesByTeam_adminUserWithLimit_canAccessTeamMessagesWithRequestedLimit() {
 
         // Arrange
-        MessageEntity message = createTestMessage("m1", "Admin can read", teamId, ownerId, now);
+        MessagePreviewProjection message = createTestPreview("m1", "Admin can read", teamId, ownerId, now, false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(adminUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithOwner));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(5), eq(500)))
                 .thenReturn(List.of(message));
 
         // Act
@@ -292,9 +291,7 @@ public class MessageServiceTest {
         assertEquals(1, result.size());
         assertEquals("m1", result.get(0).id());
 
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 5));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(5), eq(500));
     }
 
     @Test
@@ -309,7 +306,7 @@ public class MessageServiceTest {
         assertThrows(EntityNotFoundException.class, () -> messageService.getMessagesByTeam(nonexistentTeamId, null, null));
 
         verify(teamRepository).findById(nonexistentTeamId);
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
@@ -319,7 +316,7 @@ public class MessageServiceTest {
         // Arrange
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500)))
                 .thenReturn(List.of());
 
         // Act
@@ -328,9 +325,7 @@ public class MessageServiceTest {
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 50));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(50), eq(500));
     }
 
     @Test
@@ -346,10 +341,10 @@ public class MessageServiceTest {
                 () -> messageService.getMessagesByTeam(teamId, null, null));
 
         assertTrue(exception.getMessage().contains("not allowed to access this team's messages"));
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
-        verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
-        verify(messageRepository, never()).findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), anyInt(), anyInt());
+        verify(messageRepository, never()).findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), anyInt(), anyInt());
     }
 
     @Test
@@ -365,7 +360,7 @@ public class MessageServiceTest {
                 () -> messageService.getMessagesByTeam(teamId, null, 0));
 
         assertTrue(exception.getMessage().contains("Limit must be between 1 and 100"));
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
@@ -382,7 +377,7 @@ public class MessageServiceTest {
                 () -> messageService.getMessagesByTeam(teamId, null, 101));
 
         assertTrue(exception.getMessage().contains("Limit must be between 1 and 100"));
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
     }
 
@@ -403,8 +398,8 @@ public class MessageServiceTest {
 
         assertTrue(exception.getMessage().contains("Cursor must be a valid message id for this team or a timestamp"));
         verify(messageRepository).findByIdAndTeamId(invalidCursor, teamId);
-        verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
-        verify(messageRepository, never()).findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), anyInt(), anyInt());
+        verify(messageRepository, never()).findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), anyInt(), anyInt());
     }
 
     @Test
@@ -414,12 +409,12 @@ public class MessageServiceTest {
         String cursorId = "cursor-message";
         Instant cursorSentAt = now.minusSeconds(30);
         MessageEntity cursorMessage = createTestMessage(cursorId, "Cursor", teamId, userId, cursorSentAt);
-        MessageEntity olderMessage = createTestMessage("m-older", "Older", teamId, userId, cursorSentAt.minusSeconds(10));
+        MessagePreviewProjection olderMessage = createTestPreview("m-older", "Older", teamId, userId, cursorSentAt.minusSeconds(10), false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
         when(messageRepository.findByIdAndTeamId(cursorId, teamId)).thenReturn(Optional.of(cursorMessage));
-        when(messageRepository.findPageByTeamIdFromCursor(eq(teamId), eq(cursorSentAt), eq(cursorId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdFromCursor(eq(teamId), eq(cursorSentAt), eq(cursorId), eq(2), eq(500)))
                 .thenReturn(List.of(olderMessage));
 
         // Act
@@ -429,13 +424,9 @@ public class MessageServiceTest {
         assertEquals(1, result.size());
         assertEquals("m-older", result.get(0).id());
         assertEquals("Older", result.get(0).content());
-        verify(messageRepository).findPageByTeamIdFromCursor(
-                eq(teamId),
-                eq(cursorSentAt),
-                eq(cursorId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 2));
-        verify(messageRepository, never()).findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), any(Pageable.class));
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository).findPreviewPageByTeamIdFromCursor(eq(teamId), eq(cursorSentAt), eq(cursorId), eq(2), eq(500));
+        verify(messageRepository, never()).findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(anyString(), any(Instant.class), anyInt(), anyInt());
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
     }
 
     @Test
@@ -444,12 +435,12 @@ public class MessageServiceTest {
         // Arrange
         Instant cursorSentAt = now.minusSeconds(60);
         String cursor = cursorSentAt.toString();
-        MessageEntity olderMessage = createTestMessage("m-older", "Older by timestamp", teamId, userId, cursorSentAt.minusSeconds(10));
+        MessagePreviewProjection olderMessage = createTestPreview("m-older", "Older by timestamp", teamId, userId, cursorSentAt.minusSeconds(10), false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
         when(messageRepository.findByIdAndTeamId(cursor, teamId)).thenReturn(Optional.empty());
-        when(messageRepository.findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(eq(teamId), eq(cursorSentAt), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(eq(teamId), eq(cursorSentAt), eq(3), eq(500)))
                 .thenReturn(List.of(olderMessage));
 
         // Act
@@ -459,23 +450,20 @@ public class MessageServiceTest {
         assertEquals(1, result.size());
         assertEquals("m-older", result.get(0).id());
         assertEquals("Older by timestamp", result.get(0).content());
-        verify(messageRepository).findByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(
-                eq(teamId),
-                eq(cursorSentAt),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 3));
-        verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
-        verify(messageRepository, never()).findByTeamIdOrderBySentAtDescIdDesc(anyString(), any(Pageable.class));
+        verify(messageRepository).findPreviewPageByTeamIdAndSentAtBeforeOrderBySentAtDescIdDesc(eq(teamId), eq(cursorSentAt), eq(3), eq(500));
+        verify(messageRepository, never()).findPreviewPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), anyInt(), anyInt());
+        verify(messageRepository, never()).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(anyString(), anyInt(), anyInt());
     }
 
     @Test
     void testGetMessagesByTeam_blankCursor_usesDefaultPaginationBranch() {
 
         // Arrange
-        MessageEntity message = createTestMessage("m-blank", "Blank cursor path", teamId, userId, now);
+        MessagePreviewProjection message = createTestPreview("m-blank", "Blank cursor path", teamId, userId, now, false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(4), eq(500)))
                 .thenReturn(List.of(message));
 
         // Act
@@ -484,22 +472,20 @@ public class MessageServiceTest {
         // Assert
         assertEquals(1, result.size());
         assertEquals("m-blank", result.get(0).id());
-        verify(messageRepository).findByTeamIdOrderBySentAtDescIdDesc(
-                eq(teamId),
-                argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 4));
+        verify(messageRepository).findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(4), eq(500));
         verify(messageRepository, never()).findByIdAndTeamId(anyString(), anyString());
-        verify(messageRepository, never()).findPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), any(Pageable.class));
+        verify(messageRepository, never()).findPreviewPageByTeamIdFromCursor(anyString(), any(Instant.class), anyString(), anyInt(), anyInt());
     }
 
     @Test
     void testGetMessagesByTeam_withNullContent_mapsToEmptyPreview() {
 
         // Arrange
-        MessageEntity nullContentMessage = createTestMessage("m-null", null, teamId, userId, now);
+        MessagePreviewProjection nullContentMessage = createTestPreview("m-null", "", teamId, userId, now, false);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(5), eq(500)))
                 .thenReturn(List.of(nullContentMessage));
 
         // Act
@@ -516,11 +502,11 @@ public class MessageServiceTest {
 
         // Arrange
         String longContent = "x".repeat(600);
-        MessageEntity longMessage = createTestMessage("m-long", longContent, teamId, userId, now);
+        MessagePreviewProjection longMessage = createTestPreview("m-long", longContent.substring(0, 500), teamId, userId, now, true);
 
         when(authContextService.getCurrentUserFromToken()).thenReturn(enrolledUser);
         when(teamRepository.findById(teamId)).thenReturn(Optional.of(teamWithUser));
-        when(messageRepository.findByTeamIdOrderBySentAtDescIdDesc(eq(teamId), any(Pageable.class)))
+        when(messageRepository.findPreviewPageByTeamIdOrderBySentAtDescIdDesc(eq(teamId), eq(6), eq(500)))
                 .thenReturn(List.of(longMessage));
 
         // Act
