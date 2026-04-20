@@ -59,5 +59,3 @@ docker-compose --profile perf up -d --remove-orphans --scale wrk-injector-info-p
 ```
 ./stop.sh
 ```
-
-Jenkins test 2
