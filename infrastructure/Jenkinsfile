@@ -81,17 +81,22 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 script {
-                    // 1. Curățăm orice resturi de la build-urile anterioare
-                    // Folosim || true ca să nu crape dacă containerele nu există deja
+                    // 1. Găsește și omoară ORICE container care ocupă portul 27017 (chiar și cel pornit de start.sh)
+                    sh "docker ps -q --filter 'publish=27017' | xargs -r docker rm -f || true"
+                    
+                    // 2. Găsește și omoară ORICE container care ocupă portul 8080
+                    sh "docker ps -q --filter 'publish=8080' | xargs -r docker rm -f || true"
+                    
+                    // 3. Curăță și după numele specifice, ca să fim 200% siguri
                     sh "docker rm -f prod-eng-container mongo-container || true"
                     
-                    // 2. Creăm o rețea izolată pentru ca App să vadă DB-ul
+                    // 4. Creează rețeaua pentru comunicare (dacă există deja, trece mai departe)
                     sh "docker network create mrm-network || true"
                     
-                    // 3. Pornim MongoDB manual
+                    // 5. Pornește MongoDB-ul curat pentru această sesiune
                     sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 mongo:5.0.2"
                     
-                    // 4. Pornim Aplicația ta (folosind imaginea pe care tocmai ai făcut-o)
+                    // 6. Pornește Aplicația ta, conectată la MongoDB-ul de mai sus
                     sh """
                         docker run -d --name prod-eng-container \
                         --network mrm-network \
@@ -100,7 +105,7 @@ pipeline {
                         mihaitelu/prod-eng-img:${env.IMAGE_TAG}
                     """
                     
-                    // 5. Așteptăm să pornească serviciile (conform cerinței din Lab)
+                    echo "Deployment finalizat cu succes! Se așteaptă inițializarea..."
                     sleep 30
                 }
             }
