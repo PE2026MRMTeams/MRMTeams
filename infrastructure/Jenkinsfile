@@ -63,16 +63,44 @@ pipeline {
             }
         }
 
+        // stage('Deploy Application') {
+        //     steps {
+        //         script {
+        //             sh '''
+        //                 docker ps -q --filter "name=prod-eng" | xargs -r docker stop
+        //                 docker ps -q --filter "name=mongo" | xargs -r docker stop
+        //             '''
+        //             sh """
+        //                 PROD_ENG_IMAGE=${DOCKER_HUB_USERNAME}/prod-eng-img:${env.IMAGE_TAG} docker compose up -d prod-eng mongo
+        //             """
+        //             sleep 30
+        //         }
+        //     }
+        // }
+
         stage('Deploy Application') {
             steps {
                 script {
-                    sh '''
-                        docker ps -q --filter "name=prod-eng" | xargs -r docker stop
-                        docker ps -q --filter "name=mongo" | xargs -r docker stop
-                    '''
+                    // 1. Curățăm orice resturi de la build-urile anterioare
+                    // Folosim || true ca să nu crape dacă containerele nu există deja
+                    sh "docker rm -f prod-eng-container mongo-container || true"
+                    
+                    // 2. Creăm o rețea izolată pentru ca App să vadă DB-ul
+                    sh "docker network create mrm-network || true"
+                    
+                    // 3. Pornim MongoDB manual
+                    sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 mongo:5.0.2"
+                    
+                    // 4. Pornim Aplicația ta (folosind imaginea pe care tocmai ai făcut-o)
                     sh """
-                        PROD_ENG_IMAGE=${DOCKER_HUB_USERNAME}/prod-eng-img:${env.IMAGE_TAG} docker compose up -d prod-eng mongo
+                        docker run -d --name prod-eng-container \
+                        --network mrm-network \
+                        -p 8080:8080 \
+                        -e MONGODB_CONECTION_URL=mongodb://mongo-container:27017 \
+                        mihaitelu/prod-eng-img:${env.IMAGE_TAG}
                     """
+                    
+                    // 5. Așteptăm să pornească serviciile (conform cerinței din Lab)
                     sleep 30
                 }
             }
