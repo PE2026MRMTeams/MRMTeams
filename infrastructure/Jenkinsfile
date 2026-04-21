@@ -81,27 +81,25 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 script {
-                    // 1. Găsește și omoară ORICE container care ocupă portul 27017 (chiar și cel pornit de start.sh)
+                    // 1 & 2. Curățăm porturile
                     sh "docker ps -q --filter 'publish=27017' | xargs -r docker rm -f || true"
-                    
-                    // 2. Găsește și omoară ORICE container care ocupă portul 8080
                     sh "docker ps -q --filter 'publish=8080' | xargs -r docker rm -f || true"
                     
-                    // 3. Curăță și după numele specifice, ca să fim 200% siguri
+                    // 3. Curățăm containerele vechi
                     sh "docker rm -f prod-eng-container mongo-container || true"
                     
-                    // 4. Creează rețeaua pentru comunicare (dacă există deja, trece mai departe)
+                    // 4. Rețeaua
                     sh "docker network create mrm-network || true"
                     
-                    // 5. Pornește MongoDB-ul curat pentru această sesiune
-                    sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 mongo:5.0.2"
+                    // 5. Pornește MongoDB-ul CU USER, PAROLĂ și VERSIUNEA din compose-ul tău (6.0.20)
+                    sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=example mongo:6.0.20"
                     
-                    // 6. Pornește Aplicația ta, conectată la MongoDB-ul de mai sus
+                    // 6. Pornește Aplicația (am adăugat root:example în link-ul de conectare, exact ca la tine)
                     sh """
                         docker run -d --name prod-eng-container \
                         --network mrm-network \
                         -p 8080:8080 \
-                        -e MONGODB_CONECTION_URL=mongodb://mongo-container:27017 \
+                        -e MONGODB_CONECTION_URL=mongodb://root:example@mongo-container:27017/ \
                         mihaitelu/prod-eng-img:${env.IMAGE_TAG}
                     """
                     
