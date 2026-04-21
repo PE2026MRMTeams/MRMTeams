@@ -177,3 +177,8 @@ Windows browser.
   * http://localhost:8090
   * default credentials: username `unibuc`, password `adobe`
   * database `test` contains application entities
+
+
+
+
+# This is a test for jenkins version 1.8.0
