@@ -63,51 +63,51 @@ pipeline {
             }
         }
 
-        // stage('Deploy Application') {
-        //     steps {
-        //         script {
-        //             sh '''
-        //                 docker ps -q --filter "name=prod-eng" | xargs -r docker stop
-        //                 docker ps -q --filter "name=mongo" | xargs -r docker stop
-        //             '''
-        //             sh """
-        //                 PROD_ENG_IMAGE=${DOCKER_HUB_USERNAME}/prod-eng-img:${env.IMAGE_TAG} docker compose up -d prod-eng mongo
-        //             """
-        //             sleep 30
-        //         }
-        //     }
-        // }
-
         stage('Deploy Application') {
             steps {
                 script {
-                    // 1 & 2. Curățăm porturile
-                    sh "docker ps -q --filter 'publish=27017' | xargs -r docker rm -f || true"
-                    sh "docker ps -q --filter 'publish=8080' | xargs -r docker rm -f || true"
-                    
-                    // 3. Curățăm containerele vechi
-                    sh "docker rm -f prod-eng-container mongo-container || true"
-                    
-                    // 4. Rețeaua
-                    sh "docker network create mrm-network || true"
-                    
-                    // 5. Pornește MongoDB-ul CU USER, PAROLĂ și VERSIUNEA din compose-ul tău (6.0.20)
-                    sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=example mongo:6.0.20"
-                    
-                    // 6. Pornește Aplicația (am adăugat root:example în link-ul de conectare, exact ca la tine)
+                    sh '''
+                        docker ps -q --filter "name=prod-eng" | xargs -r docker stop
+                        docker ps -q --filter "name=mongo" | xargs -r docker stop
+                    '''
                     sh """
-                        docker run -d --name prod-eng-container \
-                        --network mrm-network \
-                        -p 8080:8080 \
-                        -e MONGODB_CONECTION_URL=mongodb://root:example@mongo-container:27017/ \
-                        mihaitelu/prod-eng-img:${env.IMAGE_TAG}
+                        PROD_ENG_IMAGE=${DOCKER_HUB_USERNAME}/prod-eng-img:${env.IMAGE_TAG} docker compose up -d prod-eng mongo
                     """
-                    
-                    echo "Deployment finalizat cu succes! Se așteaptă inițializarea..."
                     sleep 30
                 }
             }
         }
+
+        // stage('Deploy Application') {
+        //     steps {
+        //         script {
+        //             // 1 & 2. Curățăm porturile
+        //             sh "docker ps -q --filter 'publish=27017' | xargs -r docker rm -f || true"
+        //             sh "docker ps -q --filter 'publish=8080' | xargs -r docker rm -f || true"
+                    
+        //             // 3. Curățăm containerele vechi
+        //             sh "docker rm -f prod-eng-container mongo-container || true"
+                    
+        //             // 4. Rețeaua
+        //             sh "docker network create mrm-network || true"
+                    
+        //             // 5. Pornește MongoDB-ul CU USER, PAROLĂ și VERSIUNEA din compose-ul tău (6.0.20)
+        //             sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=example mongo:6.0.20"
+                    
+        //             // 6. Pornește Aplicația (am adăugat root:example în link-ul de conectare, exact ca la tine)
+        //             sh """
+        //                 docker run -d --name prod-eng-container \
+        //                 --network mrm-network \
+        //                 -p 8080:8080 \
+        //                 -e MONGODB_CONECTION_URL=mongodb://root:example@mongo-container:27017/ \
+        //                 mihaitelu/prod-eng-img:${env.IMAGE_TAG}
+        //             """
+                    
+        //             echo "Deployment finalizat cu succes! Se așteaptă inițializarea..."
+        //             sleep 30
+        //         }
+        //     }
+        // }
 
         stage('Integration Tests') {
             steps {
