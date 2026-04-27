@@ -1,14 +1,142 @@
 pipeline {
     agent any
+
+    tools {
+        jdk 'jdk21'
+        gradle 'gradle-8'
+    }
+
     environment {
-        DOCKER_PASSWORD = credentials("docker_password")
+        DOCKER_HUB_USERNAME = 'mihaitelu'
+        DOCKER_PASSWORD = credentials('docker_password')
+        GITHUB_TOKEN = credentials('github_token')
     }
 
     stages {
-        stage('Build & Test') {
+        stage('Build') {
             steps {
                 sh './gradlew clean build'
             }
+        }
+
+        stage('Test') {
+            steps {
+                sh './gradlew test'
+            }
+        }
+
+        stage('Version & Tag') {
+            steps {
+                script {
+                    sh 'git fetch --tag'
+                    env.MAJOR_VERSION = sh(
+                        script: 'git tag | sort -V | tail -1 | cut -d . -f 1',
+                        returnStdout: true
+                    ).trim()
+                    env.MINOR_VERSION = sh(
+                        script: 'git tag | sort -V | tail -1 | cut -d . -f 2',
+                        returnStdout: true
+                    ).trim()
+                    env.PATCH_VERSION = sh(
+                        script: 'git tag | sort -V | tail -1 | cut -d . -f 3',
+                        returnStdout: true
+                    ).trim()
+                    def minorInt = env.MINOR_VERSION.toInteger()
+                    env.IMAGE_TAG = "${env.MAJOR_VERSION}.${minorInt + 1}.${env.PATCH_VERSION}"
+                    echo "Building version: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG .'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                sh '''
+                    echo $DOCKER_PASSWORD_PSW | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+                    docker push $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                script {
+                    sh '''
+                        docker ps -q --filter "name=prod-eng" | xargs -r docker stop
+                        docker ps -q --filter "name=mongo" | xargs -r docker stop
+                    '''
+                    sh """
+                        PROD_ENG_IMAGE=${DOCKER_HUB_USERNAME}/prod-eng-img:${env.IMAGE_TAG} docker compose up -d prod-eng mongo
+                    """
+                    sleep 30
+                }
+            }
+        }
+
+        // stage('Deploy Application') {
+        //     steps {
+        //         script {
+        //             // 1 & 2. Curățăm porturile
+        //             sh "docker ps -q --filter 'publish=27017' | xargs -r docker rm -f || true"
+        //             sh "docker ps -q --filter 'publish=8080' | xargs -r docker rm -f || true"
+                    
+        //             // 3. Curățăm containerele vechi
+        //             sh "docker rm -f prod-eng-container mongo-container || true"
+                    
+        //             // 4. Rețeaua
+        //             sh "docker network create mrm-network || true"
+                    
+        //             // 5. Pornește MongoDB-ul CU USER, PAROLĂ și VERSIUNEA din compose-ul tău (6.0.20)
+        //             sh "docker run -d --name mongo-container --network mrm-network -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=example mongo:6.0.20"
+                    
+        //             // 6. Pornește Aplicația (am adăugat root:example în link-ul de conectare, exact ca la tine)
+        //             sh """
+        //                 docker run -d --name prod-eng-container \
+        //                 --network mrm-network \
+        //                 -p 8080:8080 \
+        //                 -e MONGODB_CONECTION_URL=mongodb://root:example@mongo-container:27017/ \
+        //                 mihaitelu/prod-eng-img:${env.IMAGE_TAG}
+        //             """
+                    
+        //             echo "Deployment finalizat cu succes! Se așteaptă inițializarea..."
+        //             sleep 30
+        //         }
+        //     }
+        // }
+
+        stage('Integration Tests') {
+            steps {
+                sh 'MONGODB_CONECTION_URL=mongodb://root:example@host.docker.internal:27017 ./gradlew testIT'
+            }
+        }
+
+        stage('Tag Release') {
+            steps {
+                sh '''
+                    git tag $IMAGE_TAG
+                    git push https://$GITHUB_TOKEN_PSW@github.com/PE2026MRMTeams/MRMTeams.git $IMAGE_TAG
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/build/test-results/**/*.xml'
+            publishHTML([
+                allowMissing: true,
+                alwaysLinkToLastBuild: false,
+                keepAll: true,
+                reportDir: 'build/reports/tests/test',
+                reportFiles: 'index.html',
+                reportName: 'Test Report'
+            ])
+            sh 'docker logout'
         }
     }
 }

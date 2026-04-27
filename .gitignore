@@ -50,3 +50,9 @@ infrastructure/loki/durable/
 
 # Remove jmeter.log
 /jmeter.log
+
+# Remove jenkins configuration
+jenkins_config/
+
+# Ignore all .env files
+.env

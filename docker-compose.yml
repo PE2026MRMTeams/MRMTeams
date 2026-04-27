@@ -1,7 +1,7 @@
 services:
   prod-eng:
-    image: prod-eng-img
-    build: .
+    image: ${PROD_ENG_IMAGE:-prod-eng-img}
+    #build: .
     ports:
       - 8080:8080
       # Port for debug
@@ -13,13 +13,14 @@ services:
     profiles:
       - "prod-eng-service"
   jenkins:
-    image: jenkins/jenkins
+    image: jenkins/jenkins:2.558
     ports:
       - 8082:8080
       - 50000:50000
     restart: on-failure
     volumes:
       - type: bind
+        # Uses .env value locally; defaults to /workspaces/ for GitHub Codespaces
         source: ${JENKINS_CONFIG_ROOT:-/workspaces/jenkins_config}
         target: /var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
@@ -29,6 +30,8 @@ services:
     profiles:
       - "prod-eng-service"
     user: 0:0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   mongo:
     image: mongo:6.0.20
     restart: always
