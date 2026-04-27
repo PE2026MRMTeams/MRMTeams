@@ -87,6 +87,7 @@ services:
       - "monitoring"
   loki:
     image: grafana/loki:3.3.2
+    user: "0:0"
     ports:
       - 3100:3100
     volumes:
@@ -96,6 +97,7 @@ services:
       - "monitoring"
   prometheus: # metrics aggregation and alert definition server (prometheus server)
     image: prom/prometheus:v3.1.0
+    user: "0:0"
     volumes:
       - ./infrastructure/prometheus/:/etc/prometheus/
     command:
