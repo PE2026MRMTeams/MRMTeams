@@ -1,7 +1,7 @@
 services:
   prod-eng:
     image: ${PROD_ENG_IMAGE:-prod-eng-img}
-    #build: .
+    build: .
     ports:
       - 8080:8080
       # Port for debug

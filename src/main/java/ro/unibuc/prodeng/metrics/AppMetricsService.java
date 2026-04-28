@@ -16,7 +16,8 @@ public class AppMetricsService {
     private final MeterRegistry meterRegistry;
     private final Counter usersCreatedCounter;
     private final AtomicInteger activeDbConnections = new AtomicInteger(0);
-    private final AtomicInteger itemsInCart = new AtomicInteger(0);
+    //private final AtomicInteger itemsInCart = new AtomicInteger(0);
+    private final AtomicInteger activeFolders = new AtomicInteger(0);
 
     public AppMetricsService(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
@@ -29,8 +30,11 @@ public class AppMetricsService {
                 .description("Currently active database connections")
                 .register(meterRegistry);
 
-        Gauge.builder("app_items_in_cart", itemsInCart, AtomicInteger::get)
-                .description("Current number of items across all carts")
+        // Gauge.builder("app_items_in_cart", itemsInCart, AtomicInteger::get)
+        //         .description("Current number of items across all carts")
+        //         .register(meterRegistry);
+        Gauge.builder("app_active_folders_total", activeFolders, AtomicInteger::get)
+                .description("Numarul de foldere active in sistem")
                 .register(meterRegistry);
     }
 
@@ -64,15 +68,17 @@ public class AppMetricsService {
         activeDbConnections.updateAndGet(value -> Math.max(0, value - 1));
     }
 
-    public void incrementItemsInCart() {
-        itemsInCart.incrementAndGet();
-    }
+    // public void incrementItemsInCart() {
+    //     itemsInCart.incrementAndGet();
+    // }
 
-    public void decrementItemsInCart() {
-        itemsInCart.updateAndGet(value -> Math.max(0, value - 1));
-    }
+    // public void decrementItemsInCart() {
+    //     itemsInCart.updateAndGet(value -> Math.max(0, value - 1));
+    // }
 
-    public void setItemsInCart(int count) {
-        itemsInCart.set(Math.max(0, count));
-    }
+    // public void setItemsInCart(int count) {
+    //     itemsInCart.set(Math.max(0, count));
+    // }
+    public void incrementActiveFolders() { activeFolders.incrementAndGet(); }
+    public void decrementActiveFolders() { activeFolders.decrementAndGet(); }
 }

@@ -12,6 +12,7 @@ import ro.unibuc.prodeng.response.FolderResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.request.CreateFolderRequest;
 import ro.unibuc.prodeng.service.FolderService;
+import ro.unibuc.prodeng.metrics.AppMetricsService;
 
 @RestController
 @RequestMapping("/api/folders")
@@ -19,6 +20,9 @@ public class FolderController {
 
     @Autowired
     private FolderService folderService;
+
+    @Autowired(required = false)
+    private AppMetricsService appMetricsService;
 
     @GetMapping("/{teamId}")
     public ResponseEntity<List<FolderResponse>> getAllFolders(@PathVariable String teamId) throws EntityNotFoundException {
@@ -36,6 +40,9 @@ public class FolderController {
     public ResponseEntity<FolderResponse> createFolder(
            @Valid @RequestBody CreateFolderRequest request) throws EntityNotFoundException {
         FolderResponse folder = folderService.createFolder(request);
+        if (appMetricsService != null) {
+            appMetricsService.incrementActiveFolders();
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(folder); 
     }
 
@@ -48,6 +55,9 @@ public class FolderController {
     @DeleteMapping("/{folderId}")
     public ResponseEntity<Void> deleteFolder(@PathVariable String folderId) throws EntityNotFoundException {
         folderService.deleteFolder(folderId);
+        if (appMetricsService != null) {
+            appMetricsService.decrementActiveFolders();
+        }
         return ResponseEntity.noContent().build();
     }
 

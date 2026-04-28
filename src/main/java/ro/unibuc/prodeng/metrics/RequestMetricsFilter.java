@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class RequestMetricsFilter extends OncePerRequestFilter {
 
     @Autowired(required = false)
