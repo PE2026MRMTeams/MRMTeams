@@ -1,22 +1,29 @@
 global:
   resolve_timeout: 1m
 
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
 route:
   group_by: ['alertname']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1m
-  receiver: 'email'
+  receiver: 'email-notifier'
 
 receivers:
-  - name: 'email'
+  - name: 'email-notifier'
     email_configs:
       - to: 'telu.mihai.7.com@gmail.com'
+        send_resolved: true
         from: 'razvananghel08@gmail.com'
         smarthost: smtp.gmail.com:587
         auth_username: 'razvananghel08@gmail.com'
         auth_identity: 'razvananghel08@gmail.com'
         auth_password: 'vuku rfhj knoh ufst'
+        headers:
+          Subject: '{{ template "email.subject" . }}'
+        html: '{{ template "email.body" . }}'
 
 inhibit_rules:
   - source_match:

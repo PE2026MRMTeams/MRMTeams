@@ -1,0 +1,29 @@
+{{ define "email.subject" }}
+{{- if eq .Status "resolved" -}}
+  [RESOLVED] {{ .GroupLabels.alertname }}
+{{- else if eq .GroupLabels.severity "critical" -}}
+  [CRITICAL] {{ .GroupLabels.alertname }}
+{{- else if eq .GroupLabels.severity "warning" -}}
+  [WARNING] {{ .GroupLabels.alertname }}
+{{- else -}}
+  [INFO] {{ .GroupLabels.alertname }}
+{{- end -}}
+{{ end }}
+
+{{ define "email.body" }}
+<h2>Alerts</h2>
+{{ range .Alerts }}
+<hr>
+<p><strong>Status</strong>: {{ .Status }}</p>
+<p><strong>Labels</strong>:</p>
+<ul>
+  {{ range .Labels.SortedPairs }}<li>{{ .Name }}: {{ .Value }}</li>
+  {{ end }}
+</ul>
+<p><strong>Annotations</strong>:</p>
+<ul>
+  {{ range .Annotations.SortedPairs }}<li>{{ .Name }}: {{ .Value }}</li>
+  {{ end }}
+</ul>
+{{ end }}
+{{ end }}

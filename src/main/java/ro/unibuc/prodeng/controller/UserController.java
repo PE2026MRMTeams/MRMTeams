@@ -30,6 +30,9 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers();
+        if (appMetricsService != null) {
+            appMetricsService.incrementUsersDisplayed();
+        }
         return ResponseEntity.ok(users);
     }
 

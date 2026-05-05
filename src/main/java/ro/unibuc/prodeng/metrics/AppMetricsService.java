@@ -15,6 +15,8 @@ public class AppMetricsService {
 
     private final MeterRegistry meterRegistry;
     private final Counter usersCreatedCounter;
+    private final Counter usersDisplayedCounter;
+    private final Counter infoCounter;
     private final AtomicInteger activeDbConnections = new AtomicInteger(0);
     //private final AtomicInteger itemsInCart = new AtomicInteger(0);
     private final AtomicInteger activeFolders = new AtomicInteger(0);
@@ -24,6 +26,14 @@ public class AppMetricsService {
 
         this.usersCreatedCounter = Counter.builder("app_users_created_total")
                 .description("Total number of user registrations")
+                .register(meterRegistry);
+
+        this.usersDisplayedCounter = Counter.builder("app_users_displayed_total")
+                .description("Total number of calls to the GET /api/users endpoint")
+                .register(meterRegistry);
+
+        this.infoCounter = Counter.builder("prod_eng_info_count_total")
+                .description("Total number of calls to the /info endpoint")
                 .register(meterRegistry);
 
         Gauge.builder("app_db_connections_active", activeDbConnections, AtomicInteger::get)
@@ -40,6 +50,14 @@ public class AppMetricsService {
 
     public void recordUserCreated() {
         usersCreatedCounter.increment();
+    }
+
+    public void incrementUsersDisplayed() {
+        usersDisplayedCounter.increment();
+    }
+
+    public void incrementInfoCount() {
+        infoCounter.increment();
     }
 
     public void recordRequestDuration(String endpoint, String method, int status, Duration duration) {

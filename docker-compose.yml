@@ -105,6 +105,9 @@ services:
       - "--storage.tsdb.path=/etc/prometheus/durable"
     ports:
       - 9090:9090
+    depends_on:
+      - loki
+    stop_grace_period: 30s
     logging:
       driver: loki
       options:
@@ -114,10 +117,13 @@ services:
   alertmanager: # alert manager (prometheus)
     image: prom/alertmanager:v0.28.0
     volumes:
-      - ./infrastructure/alertmanager/:/config/
-    command: --config.file=/config/alertmanager.yml --log.level=debug
+      - ./infrastructure/alertmanager/:/etc/alertmanager/
+    command: --config.file=/etc/alertmanager/alertmanager.yml --log.level=debug
     ports:
       - "9093:9093"
+    depends_on:
+      - loki
+    stop_grace_period: 30s
     logging:
       driver: loki
       options:
@@ -151,7 +157,7 @@ services:
     image: mtchavez/docker-wrk
     profiles:
       - "perf"
-    command: wrk -t4 -c1000 -d5m --timeout 1s --latency http://prod-eng:8080/info
+    command: wrk -t4 -c1000 -d5m --timeout 1s --latency http://prod-eng:8080/api/users
     logging:
       driver: loki
       options:
