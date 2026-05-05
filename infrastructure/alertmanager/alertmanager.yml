@@ -7,13 +7,20 @@ route:
   group_interval: 10s
   repeat_interval: 1m
   receiver: 'email'
-  
+
 receivers:
-- name: 'email'
-  email_configs:
-  - to: 'EMAIL@gmail.com'
-    from: 'EMAIL@gmail.com'
-    smarthost: smtp.gmail.com:587
-    auth_username: 'EMAIL@gmail.com'
-    auth_identity: 'EMAIL@gmail.com'
-    auth_password: 'GENERATE ONE FROM https://security.google.com/settings/security/apppasswords'
+  - name: 'email'
+    email_configs:
+      - to: 'telu.mihai.7.com@gmail.com'
+        from: 'razvananghel08@gmail.com'
+        smarthost: smtp.gmail.com:587
+        auth_username: 'razvananghel08@gmail.com'
+        auth_identity: 'razvananghel08@gmail.com'
+        auth_password: 'vuku rfhj knoh ufst'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']
