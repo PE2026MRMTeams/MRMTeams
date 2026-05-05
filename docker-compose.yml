@@ -105,6 +105,7 @@ services:
       - "--storage.tsdb.path=/etc/prometheus/durable"
     ports:
       - 9090:9090
+    stop_grace_period: 1s
     logging:
       driver: loki
       options:
@@ -118,6 +119,7 @@ services:
     command: --config.file=/config/alertmanager.yml --log.level=debug
     ports:
       - "9093:9093"
+    stop_grace_period: 1s
     logging:
       driver: loki
       options:

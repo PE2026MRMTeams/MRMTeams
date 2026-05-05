@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.exception.GlobalExceptionHandler;
+import ro.unibuc.prodeng.metrics.AppMetricsService;
 import ro.unibuc.prodeng.request.ChangeNameRequest;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 import ro.unibuc.prodeng.request.LoginRequest;
@@ -36,6 +37,9 @@ class UserControllerTest {
     
     @Mock
     private UserService userService;
+    
+    @Mock
+    private AppMetricsService appMetricsService;
     
     @InjectMocks
     private UserController userController;

@@ -3,14 +3,14 @@ groups:
     rules:
       # --- Availability ---
       - alert: WARNING-ServiceHealthCheckFailing
-        expr: up{job="spring-prod-eng-app"} == 0
+        expr: up{job="mrmteams-prod-eng-app"} == 0
         for: 30s
         labels:
           severity: warning
           category: availability
         annotations:
           summary: "Service health check failing (instance {{ $labels.instance }})"
-          description: "The spring-prod-eng-app target has been unreachable for more than 30 seconds.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          description: "The mrmteams-prod-eng-app target has been unreachable for more than 30 seconds.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
       # --- Performance ---
       - alert: WARNING-HighRequestLatency

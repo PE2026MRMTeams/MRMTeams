@@ -24,11 +24,14 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired(required = false)
+    @Autowired
     private AppMetricsService appMetricsService;
 
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
+        if (appMetricsService != null) {
+            appMetricsService.incrementUsersDisplayed();
+        }
         List<UserResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
