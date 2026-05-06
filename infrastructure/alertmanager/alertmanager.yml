@@ -2,7 +2,7 @@ global:
   resolve_timeout: 1m
 
 route:
-  group_by: ['alertname']
+  group_by: ['alertname','name','instance']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1m
@@ -24,4 +24,4 @@ inhibit_rules:
       severity: 'critical'
     target_match:
       severity: 'warning'
-    equal: ['job', 'instance']
+    equal: ['job', 'instance', 'name']

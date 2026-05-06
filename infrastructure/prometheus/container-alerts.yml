@@ -1,7 +1,7 @@
 groups:
   - name: ContainerAlerts
     rules:
-    - alert: WARNING-ApplicationContainerDown
+    - alert: ApplicationContainerDown
       expr: time() - container_last_seen{name="mrmteams-prod-eng-1"} > 40
       for: 0m
       labels:
@@ -10,7 +10,7 @@ groups:
         summary: Application container down (instance {{ $labels.instance }})
         description: "Application container has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
-    - alert: CRITICAL-ApplicationContainerDown
+    - alert: ApplicationContainerDown
       expr: time() - container_last_seen{name="mrmteams-prod-eng-1"} > 60
       for: 0m
       labels:
