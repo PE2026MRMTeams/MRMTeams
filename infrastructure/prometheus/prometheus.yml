@@ -18,7 +18,7 @@ scrape_configs:
     metrics_path: '/metrics'
     static_configs:
       - targets: ['mongodb-exporter:9001']
-  - job_name: 'spring-prod-eng-app'
+  - job_name: 'mrmteams-prod-eng-app'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['prod-eng:8080']
@@ -28,6 +28,7 @@ rule_files:
   - app-alerts.yml
   - canary-alerts.yml
   - container-alerts.yml
+  - custom-alerts.yml
 
 alerting:
   alertmanagers:

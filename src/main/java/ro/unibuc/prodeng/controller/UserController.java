@@ -14,6 +14,7 @@ import ro.unibuc.prodeng.request.LoginRequest;
 import ro.unibuc.prodeng.response.TokenResponse;
 import ro.unibuc.prodeng.response.UserResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
+import ro.unibuc.prodeng.metrics.AppMetricsService;
 import ro.unibuc.prodeng.service.UserService;
 
 @RestController
@@ -23,8 +24,14 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private AppMetricsService appMetricsService;
+
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
+        if (appMetricsService != null) {
+            appMetricsService.incrementUsersDisplayed();
+        }
         List<UserResponse> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
@@ -38,6 +45,9 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse user = userService.createUser(request);
+        if (appMetricsService != null) {
+            appMetricsService.recordUserCreated();
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 

@@ -1,7 +1,7 @@
 services:
   prod-eng:
     image: ${PROD_ENG_IMAGE:-prod-eng-img}
-    #build: .
+    build: .
     ports:
       - 8080:8080
       # Port for debug
@@ -87,6 +87,7 @@ services:
       - "monitoring"
   loki:
     image: grafana/loki:3.3.2
+    user: "0:0"
     ports:
       - 3100:3100
     volumes:
@@ -96,6 +97,7 @@ services:
       - "monitoring"
   prometheus: # metrics aggregation and alert definition server (prometheus server)
     image: prom/prometheus:v3.1.0
+    user: "0:0"
     volumes:
       - ./infrastructure/prometheus/:/etc/prometheus/
     command:
@@ -103,6 +105,7 @@ services:
       - "--storage.tsdb.path=/etc/prometheus/durable"
     ports:
       - 9090:9090
+    stop_grace_period: 1s
     logging:
       driver: loki
       options:
@@ -116,6 +119,7 @@ services:
     command: --config.file=/config/alertmanager.yml --log.level=debug
     ports:
       - "9093:9093"
+    stop_grace_period: 1s
     logging:
       driver: loki
       options:
